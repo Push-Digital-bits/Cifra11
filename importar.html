@@ -15,21 +15,24 @@
   </style>
 </head>
 <body>
-  <h1>Importar arquivo raiz (.db)</h1>
-  <input type="file" id="arquivoDb" accept=".db">
-  <div id="status"></div>
+  <div id="conteudo" style="display:none;">
+    <h1>Importar arquivo raiz (.db)</h1>
+    <input type="file" id="arquivoDb" accept=".db">
+    <div id="status"></div>
 
-  <div id="controles" style="display:none; margin-top: 15px;">
-    <button id="btnMarcarCifras">Marcar só categoria "Cifras"</button>
-    <button id="btnDesmarcarTudo">Desmarcar tudo</button>
+    <div id="controles" style="display:none; margin-top: 15px;">
+      <button id="btnMarcarCifras">Marcar só categoria "Cifras"</button>
+      <button id="btnDesmarcarTudo">Desmarcar tudo</button>
+    </div>
+
+    <div id="lista"></div>
+
+    <button id="btnImportar" style="display:none;">Importar selecionados</button>
   </div>
-
-  <div id="lista"></div>
-
-  <button id="btnImportar" style="display:none;">Importar selecionados</button>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabaseClient.js"></script>
+  <script src="auth.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
   <script>
     let notasCarregadas = [];
@@ -135,6 +138,23 @@
 
       document.getElementById('status').textContent = `${selecionadas.length} músicas importadas com sucesso!`;
     });
+
+    async function iniciar() {
+      const sessao = await protegerPagina();
+      if (!sessao) return;
+
+      const perfil = await obterPerfil();
+      const ehAdmin = !!(perfil && perfil.papel === 'administrador');
+
+      if (!ehAdmin) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      document.getElementById('conteudo').style.display = 'block';
+    }
+
+    iniciar();
   </script>
 </body>
 </html>
