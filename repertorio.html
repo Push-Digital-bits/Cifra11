@@ -53,7 +53,7 @@
       <div id="infoData"></div>
     </div>
 
-    <button id="btnEditar">Editar repertório</button>
+    <button id="btnEditar" style="display:none;">Editar repertório</button>
 
     <div id="editarCabecalho">
       <label for="editNome">Nome do repertório</label>
@@ -87,6 +87,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabaseClient.js"></script>
+  <script src="auth.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
     const repertorioId = params.get('id');
@@ -95,6 +96,7 @@
     let modoEdicao = false;
     let todasMusicas = [];
     let repertorioAtual = null;
+    let ehAdmin = false;
 
     function formatarData(iso) {
       const [ano, mes, dia] = iso.split('-');
@@ -319,7 +321,21 @@
       if (indiceAtual + 1 < itens.length) abrirCifra(indiceAtual + 1);
     });
 
-    carregar();
+    async function iniciar() {
+      const sessao = await protegerPagina();
+      if (!sessao) return;
+
+      const perfil = await obterPerfil();
+      ehAdmin = !!(perfil && perfil.papel === 'administrador');
+
+      if (ehAdmin) {
+        document.getElementById('btnEditar').style.display = 'inline-block';
+      }
+
+      carregar();
+    }
+
+    iniciar();
   </script>
 </body>
 </html>
