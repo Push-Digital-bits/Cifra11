@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerenciar usuários - Cifra11</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
+<script src="auth.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    color: #222;
+    padding: 20px;
+  }
+  .topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  a.voltar {
+    text-decoration: none;
+    color: #333;
+    font-size: 20px;
+  }
+  h1 {
+    font-size: 20px;
+    margin: 0;
+  }
+  .usuario {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .usuario .nome {
+    font-weight: bold;
+  }
+  select {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  }
+  .carregando {
+    text-align: center;
+    color: #888;
+    margin-top: 40px;
+  }
+  .aviso {
+    text-align: center;
+    color: #c00;
+    margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <a href="index.html" class="voltar">←</a>
+  <h1>Gerenciar usuários</h1>
+  <div style="width:20px;"></div>
+</div>
+
+<div id="lista" class="carregando">Carregando...</div>
+
+<script>
+  (async () => {
+    const sessao = await protegerPagina();
+    if (!sessao) return;
+
+    const perfil = await obterPerfil();
+    if (!perfil || perfil.papel !== "administrador") {
+      document.getElementById("lista").innerHTML =
+        '<div class="aviso">Você não tem permissão pra acessar essa página.</div>';
+      return;
+    }
+
+    carregarUsuarios();
+  })();
+
+  async function carregarUsuarios() {
+    const { data: usuarios, error } = await sbClient
+      .from("perfis")
+      .select("id, nome, papel")
+      .order("nome");
+
+    if (error) {
+      document.getElementById("lista").innerHTML =
+        '<div class="aviso">Erro ao carregar usuários: ' + error.message + '</div>';
+      return;
+    }
+
+    const lista = document.getElementById("lista");
+    lista.innerHTML = "";
+    lista.classList.remove("carregando");
+
+    usuarios.forEach((u) => {
+      const div = document.createElement("div");
+      div.className = "usuario";
+      div.innerHTML = `
+        <span class="nome">${u.nome}</span>
+        <select data-id="${u.id}">
+          <option value="membro" ${u.papel === "membro" ? "selected" : ""}>Membro</option>
+          <option value="administrador" ${u.papel === "administrador" ? "selected" : ""}>Administrador</option>
+        </select>
+      `;
+      lista.appendChild(div);
+    });
+
+    lista.querySelectorAll("select").forEach((sel) => {
+      sel.addEventListener("change", async (e) => {
+        const id = e.target.getAttribute("data-id");
+        const novoPapel = e.target.value;
+
+        const { error } = await sbClient
+          .from("perfis")
+          .update({ papel: novoPapel })
+          .eq("id", id);
+
+        if (error) {
+          alert("Erro ao atualizar: " + error.message);
+        }
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
