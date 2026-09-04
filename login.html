@@ -30,7 +30,28 @@
   h1 {
     text-align: center;
     font-size: 22px;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
+  }
+  .abas {
+    display: flex;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #333;
+  }
+  .aba {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    cursor: pointer;
+    background: #2a2a2a;
+    color: #aaa;
+    font-size: 14px;
+  }
+  .aba.ativa {
+    background: #4caf50;
+    color: #fff;
+    font-weight: bold;
   }
   label {
     display: block;
@@ -63,19 +84,28 @@
     background: #555;
     cursor: not-allowed;
   }
-  .erro {
-    color: #ff6b6b;
+  .msg {
     font-size: 14px;
     text-align: center;
     margin-top: 12px;
     display: none;
   }
+  .erro { color: #ff6b6b; }
+  .sucesso { color: #6bffa1; }
+  .oculto { display: none; }
 </style>
 </head>
 <body>
 
 <div class="card">
   <h1>🎸 Cifra11</h1>
+
+  <div class="abas">
+    <div class="aba ativa" id="abaLogin">Entrar</div>
+    <div class="aba" id="abaCadastro">Criar conta</div>
+  </div>
+
+  <!-- FORM DE LOGIN -->
   <form id="formLogin">
     <label for="usuario">Usuário ou e-mail</label>
     <input type="text" id="usuario" autocomplete="username" required>
@@ -84,8 +114,27 @@
     <input type="password" id="senha" autocomplete="current-password" required>
 
     <button type="submit" id="btnEntrar">Entrar</button>
-    <div class="erro" id="msgErro"></div>
   </form>
+
+  <!-- FORM DE CADASTRO -->
+  <form id="formCadastro" class="oculto">
+    <label for="nomeCadastro">Seu nome</label>
+    <input type="text" id="nomeCadastro" required>
+
+    <label for="usuarioCadastro">Nome de usuário (sem espaços)</label>
+    <input type="text" id="usuarioCadastro" required>
+
+    <label for="senhaCadastro">Senha</label>
+    <input type="password" id="senhaCadastro" required>
+
+    <label for="senhaCadastro2">Confirmar senha</label>
+    <input type="password" id="senhaCadastro2" required>
+
+    <button type="submit" id="btnCadastrar">Criar conta</button>
+  </form>
+
+  <div class="msg erro" id="msgErro"></div>
+  <div class="msg sucesso" id="msgSucesso"></div>
 </div>
 
 <script>
@@ -97,40 +146,120 @@
     }
   })();
 
-  const form = document.getElementById("formLogin");
-  const btnEntrar = document.getElementById("btnEntrar");
+  const abaLogin = document.getElementById("abaLogin");
+  const abaCadastro = document.getElementById("abaCadastro");
+  const formLogin = document.getElementById("formLogin");
+  const formCadastro = document.getElementById("formCadastro");
   const msgErro = document.getElementById("msgErro");
+  const msgSucesso = document.getElementById("msgSucesso");
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  function limparMsgs() {
     msgErro.style.display = "none";
+    msgSucesso.style.display = "none";
+  }
+
+  abaLogin.addEventListener("click", () => {
+    abaLogin.classList.add("ativa");
+    abaCadastro.classList.remove("ativa");
+    formLogin.classList.remove("oculto");
+    formCadastro.classList.add("oculto");
+    limparMsgs();
+  });
+
+  abaCadastro.addEventListener("click", () => {
+    abaCadastro.classList.add("ativa");
+    abaLogin.classList.remove("ativa");
+    formCadastro.classList.remove("oculto");
+    formLogin.classList.add("oculto");
+    limparMsgs();
+  });
+
+  // LOGIN
+  formLogin.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    limparMsgs();
 
     let usuario = document.getElementById("usuario").value.trim();
     const senha = document.getElementById("senha").value;
 
-    // Se não tiver "@", assume que é um nome de usuário e completa com domínio fake
-    let email = usuario;
-    if (!usuario.includes("@")) {
-      email = usuario + "@bandacifras.local";
-    }
+    let email = usuario.includes("@") ? usuario : usuario + "@bandacifras.local";
 
-    btnEntrar.disabled = true;
-    btnEntrar.textContent = "Entrando...";
+    const btn = document.getElementById("btnEntrar");
+    btn.disabled = true;
+    btn.textContent = "Entrando...";
 
-    const { error } = await sbClient.auth.signInWithPassword({
-      email: email,
-      password: senha
-    });
+    const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
 
     if (error) {
       msgErro.textContent = "Usuário ou senha inválidos.";
       msgErro.style.display = "block";
-      btnEntrar.disabled = false;
-      btnEntrar.textContent = "Entrar";
+      btn.disabled = false;
+      btn.textContent = "Entrar";
       return;
     }
 
     window.location.href = "index.html";
+  });
+
+  // CADASTRO
+  formCadastro.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    limparMsgs();
+
+    const nome = document.getElementById("nomeCadastro").value.trim();
+    const usuario = document.getElementById("usuarioCadastro").value.trim().toLowerCase().replace(/\s+/g, "");
+    const senha = document.getElementById("senhaCadastro").value;
+    const senha2 = document.getElementById("senhaCadastro2").value;
+
+    if (senha !== senha2) {
+      msgErro.textContent = "As senhas não são iguais.";
+      msgErro.style.display = "block";
+      return;
+    }
+
+    if (senha.length < 6) {
+      msgErro.textContent = "A senha precisa ter pelo menos 6 caracteres.";
+      msgErro.style.display = "block";
+      return;
+    }
+
+    const email = usuario + "@bandacifras.local";
+
+    const btn = document.getElementById("btnCadastrar");
+    btn.disabled = true;
+    btn.textContent = "Criando...";
+
+    const { data, error } = await sbClient.auth.signUp({ email, password: senha });
+
+    if (error) {
+      msgErro.textContent = error.message.includes("already registered")
+        ? "Esse nome de usuário já existe. Escolhe outro."
+        : "Erro ao criar conta: " + error.message;
+      msgErro.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "Criar conta";
+      return;
+    }
+
+    // Cria o perfil como "membro" por padrão
+    const { error: erroPerfil } = await sbClient
+      .from("perfis")
+      .insert({ id: data.user.id, nome: nome, papel: "membro" });
+
+    if (erroPerfil) {
+      msgErro.textContent = "Conta criada, mas houve um erro ao salvar o perfil: " + erroPerfil.message;
+      msgErro.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "Criar conta";
+      return;
+    }
+
+    msgSucesso.textContent = "Conta criada! Redirecionando...";
+    msgSucesso.style.display = "block";
+
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 1000);
   });
 </script>
 
