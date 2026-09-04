@@ -4,9 +4,99 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cifras da Banda</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 15px; }
+    input#busca { width: 100%; padding: 12px; font-size: 18px; box-sizing: border-box; margin-bottom: 10px; }
+    #lista a { display: block; padding: 12px 8px; text-decoration: none; color: #222; border-bottom: 1px solid #eee; font-size: 17px; }
+    #lista a:active { background: #f0f0f0; }
+    #contador { color: #888; font-size: 13px; margin-bottom: 8px; }
+  </style>
 </head>
 <body>
-  <h1>Funcionando! 🎸</h1>
-  <p>Se você está vendo isso no navegador, o projeto está no ar.</p>
+  <h1>Cifras da Banda</h1>
+  <input type="text" id="busca" placeholder="Buscar música...">
+  <div id="contador"></div>
+  <div id="lista">Carregando...</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseClient.js"></script>
+  <script>
+    let todasMusicas = [];
+
+    function normalizar(texto) {
+      return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    }
+
+    function levenshtein(a, b) {
+      const custos = [];
+      for (let i = 0; i <= a.length; i++) {
+        custos[i] = [i];
+        for (let j = 1; j <= b.length; j++) {
+          if (i === 0) custos[i][j] = j;
+          else {
+            const sub = a[i - 1] === b[j - 1] ? 0 : 1;
+            custos[i][j] = Math.min(
+              custos[i - 1][j] + 1,
+              custos[i][j - 1] + 1,
+              custos[i - 1][j - 1] + sub
+            );
+          }
+        }
+      }
+      return custos[a.length][b.length];
+    }
+
+    function buscar(query) {
+      const q = normalizar(query);
+      if (!q) return [...todasMusicas].sort((a, b) => a.titulo.localeCompare(b.titulo));
+
+      const comPontuacao = todasMusicas.map(musica => {
+        const titulo = normalizar(musica.titulo);
+        if (titulo.includes(q)) return { musica, pontuacao: 0 };
+
+        const palavras = titulo.split(/\s+/);
+        let melhorDistancia = Infinity;
+        palavras.forEach(palavra => {
+          const dist = levenshtein(q, palavra);
+          if (dist < melhorDistancia) melhorDistancia = dist;
+        });
+
+        const tolerancia = Math.max(2, Math.ceil(q.length / 3));
+        if (melhorDistancia <= tolerancia) return { musica, pontuacao: 10 + melhorDistancia };
+        return null;
+      }).filter(Boolean);
+
+      comPontuacao.sort((a, b) => a.pontuacao - b.pontuacao || a.musica.titulo.localeCompare(b.musica.titulo));
+      return comPontuacao.map(item => item.musica);
+    }
+
+    function renderizar(lista) {
+      const container = document.getElementById('lista');
+      document.getElementById('contador').textContent = `${lista.length} música(s)`;
+      if (lista.length === 0) {
+        container.innerHTML = '<p style="color:#888">Nenhuma música encontrada.</p>';
+        return;
+      }
+      container.innerHTML = lista.map(m =>
+        `<a href="cifra.html?id=${m.id}">${m.titulo}</a>`
+      ).join('');
+    }
+
+    async function carregar() {
+      const { data, error } = await sbClient.from('musicas').select('id, titulo').order('titulo');
+      if (error) {
+        document.getElementById('lista').textContent = 'Erro ao carregar: ' + error.message;
+        return;
+      }
+      todasMusicas = data;
+      renderizar(buscar(''));
+    }
+
+    document.getElementById('busca').addEventListener('input', (e) => {
+      renderizar(buscar(e.target.value));
+    });
+
+    carregar();
+  </script>
 </body>
 </html>

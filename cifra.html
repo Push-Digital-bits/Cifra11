@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cifra</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 15px; }
+    #topo { display: flex; align-items: center; margin-bottom: 10px; }
+    #voltar { font-size: 28px; text-decoration: none; color: #222; margin-right: 12px; }
+    #titulo { font-size: 20px; font-weight: bold; }
+    #conteudo {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div id="topo">
+    <a id="voltar" href="index.html">←</a>
+    <span id="titulo">Carregando...</span>
+  </div>
+  <div id="conteudo"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseClient.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+
+    async function carregar() {
+      if (!id) {
+        document.getElementById('titulo').textContent = 'Música não especificada';
+        return;
+      }
+      const { data, error } = await sbClient.from('musicas').select('titulo, conteudo').eq('id', id).single();
+      if (error || !data) {
+        document.getElementById('titulo').textContent = 'Erro ao carregar música';
+        return;
+      }
+      document.getElementById('titulo').textContent = data.titulo;
+      document.getElementById('conteudo').textContent = data.conteudo;
+    }
+
+    carregar();
+  </script>
+</body>
+</html>
