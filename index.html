@@ -10,11 +10,22 @@
     #lista a { display: block; padding: 12px 8px; text-decoration: none; color: #222; border-bottom: 1px solid #eee; font-size: 17px; }
     #lista a:active { background: #f0f0f0; }
     #contador { color: #888; font-size: 13px; margin-bottom: 8px; }
+
+    #repertorios { margin-bottom: 20px; }
+    .cardRepertorio { display: block; padding: 12px; margin-bottom: 8px; background: #f5f5f5; border-radius: 8px; text-decoration: none; color: #222; }
+    .cardRepertorio .nome { font-weight: bold; font-size: 16px; }
+    .cardRepertorio .dias { font-size: 13px; color: #666; }
+    #linkNovoRepertorio { display: inline-block; margin-bottom: 15px; font-size: 14px; }
   </style>
 </head>
 <body>
   <h1>Cifras da Banda</h1>
+
   <input type="text" id="busca" placeholder="Buscar música...">
+
+  <div id="repertorios"></div>
+  <a id="linkNovoRepertorio" href="novo-repertorio.html">+ Criar novo repertório</a>
+
   <div id="contador"></div>
   <div id="lista">Carregando...</div>
 
@@ -82,7 +93,58 @@
       ).join('');
     }
 
+    function formatarData(iso) {
+      const [ano, mes, dia] = iso.split('-');
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    async function verificarRepertorioDeHoje() {
+      const hoje = new Date().toISOString().split('T')[0];
+      const { data } = await sbClient
+        .from('repertorios')
+        .select('id')
+        .eq('data_evento', hoje)
+        .limit(1);
+
+      if (data && data.length > 0) {
+        window.location.href = `repertorio.html?id=${data[0].id}`;
+        return true;
+      }
+      return false;
+    }
+
+    async function carregarRepertoriosProximos() {
+      const hoje = new Date().toISOString().split('T')[0];
+      const { data } = await sbClient
+        .from('repertorios')
+        .select('id, nome, data_evento')
+        .gte('data_evento', hoje)
+        .order('data_evento')
+        .limit(5);
+
+      const container = document.getElementById('repertorios');
+      if (!data || data.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = data.map(r => {
+        const dias = Math.ceil((new Date(r.data_evento) - new Date(hoje)) / 86400000);
+        return `
+          <a class="cardRepertorio" href="repertorio.html?id=${r.id}">
+            <div class="nome">${r.nome}</div>
+            <div class="dias">${formatarData(r.data_evento)} — faltam ${dias} dia(s)</div>
+          </a>
+        `;
+      }).join('');
+    }
+
     async function carregar() {
+      const foiRedirecionado = await verificarRepertorioDeHoje();
+      if (foiRedirecionado) return;
+
+      await carregarRepertoriosProximos();
+
       const { data, error } = await sbClient.from('musicas').select('id, titulo').order('titulo');
       if (error) {
         document.getElementById('lista').textContent = 'Erro ao carregar: ' + error.message;
