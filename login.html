@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Cifra11</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .card {
+    background: #1e1e1e;
+    padding: 30px 25px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 25px;
+  }
+  label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 6px;
+    color: #ccc;
+  }
+  input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 18px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #2a2a2a;
+    color: #fff;
+    font-size: 15px;
+  }
+  button {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 8px;
+    background: #4caf50;
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:disabled {
+    background: #555;
+    cursor: not-allowed;
+  }
+  .erro {
+    color: #ff6b6b;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 12px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🎸 Cifra11</h1>
+  <form id="formLogin">
+    <label for="usuario">Usuário ou e-mail</label>
+    <input type="text" id="usuario" autocomplete="username" required>
+
+    <label for="senha">Senha</label>
+    <input type="password" id="senha" autocomplete="current-password" required>
+
+    <button type="submit" id="btnEntrar">Entrar</button>
+    <div class="erro" id="msgErro"></div>
+  </form>
+</div>
+
+<script>
+  // Se já estiver logado, vai direto pra home
+  (async () => {
+    const { data } = await sbClient.auth.getSession();
+    if (data.session) {
+      window.location.href = "index.html";
+    }
+  })();
+
+  const form = document.getElementById("formLogin");
+  const btnEntrar = document.getElementById("btnEntrar");
+  const msgErro = document.getElementById("msgErro");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msgErro.style.display = "none";
+
+    let usuario = document.getElementById("usuario").value.trim();
+    const senha = document.getElementById("senha").value;
+
+    // Se não tiver "@", assume que é um nome de usuário e completa com domínio fake
+    let email = usuario;
+    if (!usuario.includes("@")) {
+      email = usuario + "@bandacifras.local";
+    }
+
+    btnEntrar.disabled = true;
+    btnEntrar.textContent = "Entrando...";
+
+    const { error } = await sbClient.auth.signInWithPassword({
+      email: email,
+      password: senha
+    });
+
+    if (error) {
+      msgErro.textContent = "Usuário ou senha inválidos.";
+      msgErro.style.display = "block";
+      btnEntrar.disabled = false;
+      btnEntrar.textContent = "Entrar";
+      return;
+    }
+
+    window.location.href = "index.html";
+  });
+</script>
+
+</body>
+</html>
