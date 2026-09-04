@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repertório</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 15px; }
+    a.voltar { text-decoration: none; color: #222; }
+    #cabecalho { margin-bottom: 15px; }
+    #saudacao { color: #2a7; font-weight: bold; }
+    #infoData { color: #888; font-size: 14px; }
+    #listaMusicas a { display: block; padding: 14px 10px; text-decoration: none; color: #222; border-bottom: 1px solid #eee; font-size: 17px; }
+    #vazio { color: #888; }
+
+    #telaCifra { display: none; }
+    #topoCifra { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    #setaVoltar { font-size: 28px; text-decoration: none; color: #222; }
+    #tituloCifra { font-size: 20px; font-weight: bold; text-align: center; flex: 1; margin: 0 10px; }
+    #setaProxima { font-size: 28px; text-decoration: none; color: #222; text-align: right; }
+    #nomeProxima { font-size: 11px; color: #888; display: block; text-align: right; max-width: 100px; }
+    #conteudoCifra {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="telaLista">
+    <a class="voltar" href="index.html">← Voltar</a>
+    <div id="cabecalho">
+      <h1 id="nomeRepertorio">Carregando...</h1>
+      <div id="saudacao"></div>
+      <div id="infoData"></div>
+    </div>
+    <div id="listaMusicas"></div>
+  </div>
+
+  <div id="telaCifra">
+    <div id="topoCifra">
+      <a id="setaVoltar" href="#">←</a>
+      <div id="tituloCifra"></div>
+      <a id="setaProxima" href="#">
+        →
+        <span id="nomeProxima"></span>
+      </a>
+    </div>
+    <div id="conteudoCifra"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseClient.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const repertorioId = params.get('id');
+    let itens = [];
+    let indiceAtual = -1;
+
+    function formatarData(iso) {
+      const [ano, mes, dia] = iso.split('-');
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    async function carregar() {
+      const { data: repertorio, error: erroRep } = await sbClient
+        .from('repertorios').select('*').eq('id', repertorioId).single();
+
+      if (erroRep || !repertorio) {
+        document.getElementById('nomeRepertorio').textContent = 'Repertório não encontrado';
+        return;
+      }
+
+      document.getElementById('nomeRepertorio').textContent = repertorio.nome;
+
+      const hoje = new Date().toISOString().split('T')[0];
+      const diffDias = Math.ceil((new Date(repertorio.data_evento) - new Date(hoje)) / 86400000);
+
+      if (repertorio.data_evento === hoje) {
+        document.getElementById('saudacao').textContent = '🎶 Bom culto! Hoje é o dia deste repertório.';
+      } else if (diffDias > 0) {
+        document.getElementById('infoData').textContent = `${formatarData(repertorio.data_evento)} — faltam ${diffDias} dia(s)`;
+      } else {
+        document.getElementById('infoData').textContent = `${formatarData(repertorio.data_evento)} (já passou)`;
+      }
+
+      const { data: linhas, error: erroItens } = await sbClient
+        .from('repertorio_musicas')
+        .select('id, ordem, musicas (id, titulo, conteudo)')
+        .eq('repertorio_id', repertorioId)
+        .order('ordem');
+
+      if (erroItens) {
+        document.getElementById('listaMusicas').textContent = 'Erro ao carregar músicas: ' + erroItens.message;
+        return;
+      }
+
+      itens = linhas.map(l => l.musicas);
+      renderizarLista();
+    }
+
+    function renderizarLista() {
+      const container = document.getElementById('listaMusicas');
+      if (itens.length === 0) {
+        container.innerHTML = '<p id="vazio">Nenhuma música neste repertório ainda.</p>';
+        return;
+      }
+      container.innerHTML = itens.map((musica, indice) =>
+        `<a href="#" onclick="abrirCifra(${indice}); return false;">${musica.titulo}</a>`
+      ).join('');
+    }
+
+    function abrirCifra(indice) {
+      indiceAtual = indice;
+      const musica = itens[indice];
+      document.getElementById('tituloCifra').textContent = musica.titulo;
+      document.getElementById('conteudoCifra').textContent = musica.conteudo;
+
+      const proxima = itens[indice + 1];
+      document.getElementById('nomeProxima').textContent = proxima ? proxima.titulo : '';
+      document.getElementById('setaProxima').style.visibility = proxima ? 'visible' : 'hidden';
+
+      document.getElementById('telaLista').style.display = 'none';
+      document.getElementById('telaCifra').style.display = 'block';
+    }
+
+    document.getElementById('setaVoltar').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('telaCifra').style.display = 'none';
+      document.getElementById('telaLista').style.display = 'block';
+    });
+
+    document.getElementById('setaProxima').addEventListener('click', (e) => {
+      e.preventDefault();
+      if (indiceAtual + 1 < itens.length) abrirCifra(indiceAtual + 1);
+    });
+
+    carregar();
+  </script>
+</body>
+</html>

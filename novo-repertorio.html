@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Novo Repertório</title>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 15px; }
+    label { display: block; margin-top: 15px; font-weight: bold; }
+    input { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; margin-top: 5px; }
+    button { margin-top: 20px; padding: 12px 20px; font-size: 16px; width: 100%; }
+    a { display: inline-block; margin-bottom: 10px; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <a href="index.html">← Voltar</a>
+  <h1>Novo Repertório</h1>
+
+  <label for="nome">Nome do repertório</label>
+  <input type="text" id="nome" placeholder="Ex: Culto de domingo">
+
+  <label for="data">Data</label>
+  <input type="date" id="data">
+
+  <button id="btnCriar">Criar repertório</button>
+  <div id="status"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseClient.js"></script>
+  <script>
+    document.getElementById('btnCriar').addEventListener('click', async () => {
+      const nome = document.getElementById('nome').value.trim();
+      const data = document.getElementById('data').value;
+
+      if (!nome || !data) {
+        alert('Preenche o nome e a data.');
+        return;
+      }
+
+      document.getElementById('status').textContent = 'Criando...';
+
+      const { data: repertorio, error } = await sbClient
+        .from('repertorios')
+        .insert({ nome: nome, data_evento: data })
+        .select()
+        .single();
+
+      if (error) {
+        document.getElementById('status').textContent = 'Erro: ' + error.message;
+        return;
+      }
+
+      window.location.href = `repertorio.html?id=${repertorio.id}`;
+    });
+  </script>
+</body>
+</html>
