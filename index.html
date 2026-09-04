@@ -16,21 +16,33 @@
     .cardRepertorio .nome { font-weight: bold; font-size: 16px; }
     .cardRepertorio .dias { font-size: 13px; color: #666; }
     #linkNovoRepertorio { display: inline-block; margin-bottom: 15px; font-size: 14px; }
+
+    #cabecalho { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+    #cabecalho h1 { font-size: 20px; margin: 0; }
+    #boasVindas { font-size: 13px; color: #555; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    #boasVindas a { font-size: 13px; color: #4444cc; text-decoration: none; margin-left: 10px; }
+    #linkAdmin { display: inline-block; margin-bottom: 10px; font-size: 14px; }
   </style>
 </head>
 <body>
-  <h1>Cifras da Banda</h1>
+  <div id="cabecalho">
+    <h1>Cifras da Banda</h1>
+  </div>
+  <div id="boasVindas"></div>
 
   <input type="text" id="busca" placeholder="Buscar música...">
 
   <div id="repertorios"></div>
-  <a id="linkNovoRepertorio" href="novo-repertorio.html">+ Criar novo repertório</a>
+  <a id="linkNovoRepertorio" href="novo-repertorio.html" style="display:none;">+ Criar novo repertório</a>
+  <br>
+  <a id="linkAdmin" href="admin.html" style="display:none;">⚙️ Gerenciar usuários</a>
 
   <div id="contador"></div>
   <div id="lista">Carregando...</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabaseClient.js"></script>
+  <script src="auth.js"></script>
   <script>
     let todasMusicas = [];
 
@@ -158,7 +170,32 @@
       renderizar(buscar(e.target.value));
     });
 
-    carregar();
+    async function iniciar() {
+      const sessao = await protegerPagina();
+      if (!sessao) return;
+
+      const perfil = await obterPerfil();
+      const nome = perfil ? perfil.nome : "";
+      const ehAdmin = perfil && perfil.papel === "administrador";
+
+      document.getElementById('boasVindas').innerHTML = `
+        <span>Bem-vindo, ${nome}!</span>
+        <a href="#" id="btnSair">Sair</a>
+      `;
+      document.getElementById('btnSair').addEventListener('click', (e) => {
+        e.preventDefault();
+        fazerLogout();
+      });
+
+      if (ehAdmin) {
+        document.getElementById('linkNovoRepertorio').style.display = 'inline-block';
+        document.getElementById('linkAdmin').style.display = 'inline-block';
+      }
+
+      carregar();
+    }
+
+    iniciar();
   </script>
 </body>
 </html>
