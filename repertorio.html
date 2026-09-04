@@ -119,14 +119,16 @@
       }
     }
 
-    async function carregar() {
-      const { data: repertorio, error: erroRep } = await sbClient
-        .from('repertorios').select('*').eq('id', repertorioId).single();
-
-      if (erroRep || !repertorio) {
-        document.getElementById('nomeRepertorio').textContent = 'Repertório não encontrado';
+          async function remover(indice) {
+      const item = itens[indice];
+      if (!confirm(`Remover "${item.musica.titulo}" deste repertório?`)) return;
+      const { error } = await sbClient.from('repertorio_musicas').delete().eq('id', item.relId);
+      if (error) {
+        alert('Erro ao remover: ' + error.message);
         return;
       }
+      await carregarItens();
+    }
 
       repertorioAtual = repertorio;
       atualizarCabecalhoVisual();
