@@ -3,87 +3,77 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login - Cifra11</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabaseClient.js"></script>
+<title>G11 Cifras - Login</title>
+<link rel="stylesheet" href="estilo.css">
 <style>
-  * { box-sizing: border-box; }
   body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #121212;
-    color: #f0f0f0;
+    padding: 0;
+    max-width: 480px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
     min-height: 100vh;
-    padding: 20px;
   }
-  .card {
-    background: #1e1e1e;
-    padding: 30px 25px;
-    border-radius: 12px;
+
+  .hero {
+    position: relative;
     width: 100%;
-    max-width: 360px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    height: 300px;
+    overflow: hidden;
+    flex-shrink: 0;
   }
-  h1 {
-    text-align: center;
-    font-size: 22px;
-    margin-bottom: 15px;
+  .hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 25%;
+    display: block;
   }
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(15,23,42,0) 40%, #0F172A 98%);
+  }
+
+  .conteudo {
+    padding: 0 22px 30px;
+    margin-top: -30px;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+  }
+
   .abas {
     display: flex;
     margin-bottom: 20px;
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
-    border: 1px solid #333;
+    border: 1px solid #2A3A5C;
   }
   .aba {
     flex: 1;
     text-align: center;
-    padding: 10px;
+    padding: 11px;
     cursor: pointer;
-    background: #2a2a2a;
-    color: #aaa;
+    background: #16213A;
+    color: #94A3B8;
     font-size: 14px;
+    font-weight: 600;
   }
   .aba.ativa {
-    background: #4caf50;
-    color: #fff;
-    font-weight: bold;
+    background: #F97316;
+    color: #0F172A;
   }
+
   label {
     display: block;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 600;
     margin-bottom: 6px;
-    color: #ccc;
+    color: #94A3B8;
   }
-  input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 18px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    background: #2a2a2a;
-    color: #fff;
-    font-size: 15px;
-  }
-  button {
-    width: 100%;
-    padding: 13px;
-    border: none;
-    border-radius: 8px;
-    background: #4caf50;
-    color: #fff;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  button:disabled {
-    background: #555;
-    cursor: not-allowed;
-  }
+  input { margin-bottom: 16px; }
+
   .msg {
     font-size: 14px;
     text-align: center;
@@ -97,9 +87,11 @@
 </head>
 <body>
 
-<div class="card">
-  <h1>🎸 Cifra11</h1>
+<div class="hero">
+  <img src="fundo-login.png" alt="G11 Cifras">
+</div>
 
+<div class="conteudo">
   <div class="abas">
     <div class="aba ativa" id="abaLogin">Entrar</div>
     <div class="aba" id="abaCadastro">Criar conta</div>
@@ -113,7 +105,7 @@
     <label for="senha">Senha</label>
     <input type="password" id="senha" autocomplete="current-password" required>
 
-    <button type="submit" id="btnEntrar">Entrar</button>
+    <button type="submit" id="btnEntrar" style="width:100%;">Entrar</button>
   </form>
 
   <!-- FORM DE CADASTRO -->
@@ -130,15 +122,16 @@
     <label for="senhaCadastro2">Confirmar senha</label>
     <input type="password" id="senhaCadastro2" required>
 
-    <button type="submit" id="btnCadastrar">Criar conta</button>
+    <button type="submit" id="btnCadastrar" style="width:100%;">Criar conta</button>
   </form>
 
   <div class="msg erro" id="msgErro"></div>
   <div class="msg sucesso" id="msgSucesso"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
 <script>
-  // Se já estiver logado, vai direto pra home
   (async () => {
     const { data } = await sbClient.auth.getSession();
     if (data.session) {
@@ -174,7 +167,6 @@
     limparMsgs();
   });
 
-  // LOGIN
   formLogin.addEventListener("submit", async (e) => {
     e.preventDefault();
     limparMsgs();
@@ -201,7 +193,6 @@
     window.location.href = "index.html";
   });
 
-  // CADASTRO
   formCadastro.addEventListener("submit", async (e) => {
     e.preventDefault();
     limparMsgs();
@@ -241,7 +232,6 @@
       return;
     }
 
-    // Cria o perfil como "membro" por padrão
     const { error: erroPerfil } = await sbClient
       .from("perfis")
       .insert({ id: data.user.id, nome: nome, papel: "membro" });
