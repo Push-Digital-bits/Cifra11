@@ -119,16 +119,15 @@
       }
     }
 
-          async function remover(indice) {
-      const item = itens[indice];
-      if (!confirm(`Remover "${item.musica.titulo}" deste repertório?`)) return;
-      const { error } = await sbClient.from('repertorio_musicas').delete().eq('id', item.relId);
-      if (error) {
-        alert('Erro ao remover: ' + error.message);
+    async function carregar() {
+      const { data: repertorio, error: erroRep } = await sbClient
+        .from('repertorios').select('*').eq('id', repertorioId).single();
+
+      if (erroRep || !repertorio) {
+        document.getElementById('nomeRepertorio').textContent = 'Repertório não encontrado';
+        console.error(erroRep);
         return;
       }
-      await carregarItens();
-    }
 
       repertorioAtual = repertorio;
       atualizarCabecalhoVisual();
@@ -144,6 +143,7 @@
 
       if (error) {
         document.getElementById('listaMusicas').textContent = 'Erro: ' + error.message;
+        console.error(error);
         return;
       }
 
@@ -232,8 +232,13 @@
       const itemA = itens[indice];
       const itemB = itens[outroIndice];
 
-      await sbClient.from('repertorio_musicas').update({ ordem: itemB.ordem }).eq('id', itemA.relId);
-      await sbClient.from('repertorio_musicas').update({ ordem: itemA.ordem }).eq('id', itemB.relId);
+      const r1 = await sbClient.from('repertorio_musicas').update({ ordem: itemB.ordem }).eq('id', itemA.relId);
+      const r2 = await sbClient.from('repertorio_musicas').update({ ordem: itemA.ordem }).eq('id', itemB.relId);
+
+      if (r1.error || r2.error) {
+        alert('Erro ao reordenar: ' + (r1.error?.message || r2.error?.message));
+        return;
+      }
 
       await carregarItens();
     }
@@ -241,17 +246,31 @@
     async function remover(indice) {
       const item = itens[indice];
       if (!confirm(`Remover "${item.musica.titulo}" deste repertório?`)) return;
-      await sbClient.from('repertorio_musicas').delete().eq('id', item.relId);
+
+      const { error } = await sbClient.from('repertorio_musicas').delete().eq('id', item.relId);
+      if (error) {
+        alert('Erro ao remover: ' + error.message);
+        console.error(error);
+        return;
+      }
+
       await carregarItens();
     }
 
     async function adicionar(musicaId) {
       const proximaOrdem = itens.length > 0 ? Math.max(...itens.map(i => i.ordem)) + 1 : 1;
-      await sbClient.from('repertorio_musicas').insert({
+      const { error } = await sbClient.from('repertorio_musicas').insert({
         repertorio_id: repertorioId,
         musica_id: musicaId,
         ordem: proximaOrdem
       });
+
+      if (error) {
+        alert('Erro ao adicionar: ' + error.message);
+        console.error(error);
+        return;
+      }
+
       await carregarItens();
       document.getElementById('buscaAdicionar').value = '';
       document.getElementById('resultadosBusca').innerHTML = '';
