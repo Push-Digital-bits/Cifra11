@@ -12,6 +12,12 @@
     #infoData { color: #888; font-size: 14px; }
     #btnEditar { margin: 10px 0; padding: 8px 14px; }
 
+    #editarCabecalho { display: none; background: #f5f5f5; padding: 12px; border-radius: 8px; margin: 10px 0; }
+    #editarCabecalho label { display: block; font-size: 13px; font-weight: bold; margin-top: 8px; }
+    #editarCabecalho input { width: 100%; padding: 8px; font-size: 15px; box-sizing: border-box; margin-top: 3px; }
+    #editarCabecalho button { margin-top: 10px; padding: 8px 12px; margin-right: 8px; }
+    #btnExcluirRepertorio { background: #e33; color: white; border: none; border-radius: 4px; }
+
     .linhaMusica { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
     .linhaMusica .titulo { flex: 1; font-size: 17px; }
     .linhaMusica button { margin-left: 6px; padding: 4px 8px; }
@@ -49,6 +55,15 @@
 
     <button id="btnEditar">Editar repertório</button>
 
+    <div id="editarCabecalho">
+      <label for="editNome">Nome do repertório</label>
+      <input type="text" id="editNome">
+      <label for="editData">Data</label>
+      <input type="date" id="editData">
+      <button id="btnSalvarCabecalho">Salvar alterações</button>
+      <button id="btnExcluirRepertorio">Excluir repertório</button>
+    </div>
+
     <div id="listaMusicas"></div>
 
     <div id="areaAdicionar" style="display:none;">
@@ -79,10 +94,29 @@
     let indiceAtual = -1;
     let modoEdicao = false;
     let todasMusicas = [];
+    let repertorioAtual = null;
 
     function formatarData(iso) {
       const [ano, mes, dia] = iso.split('-');
       return `${dia}/${mes}/${ano}`;
+    }
+
+    function atualizarCabecalhoVisual() {
+      document.getElementById('nomeRepertorio').textContent = repertorioAtual.nome;
+
+      const hoje = new Date().toISOString().split('T')[0];
+      const diffDias = Math.ceil((new Date(repertorioAtual.data_evento) - new Date(hoje)) / 86400000);
+
+      if (repertorioAtual.data_evento === hoje) {
+        document.getElementById('saudacao').textContent = '🎶 Bom culto! Hoje é o dia deste repertório.';
+        document.getElementById('infoData').textContent = '';
+      } else if (diffDias > 0) {
+        document.getElementById('saudacao').textContent = '';
+        document.getElementById('infoData').textContent = `${formatarData(repertorioAtual.data_evento)} — faltam ${diffDias} dia(s)`;
+      } else {
+        document.getElementById('saudacao').textContent = '';
+        document.getElementById('infoData').textContent = `${formatarData(repertorioAtual.data_evento)} (já passou)`;
+      }
     }
 
     async function carregar() {
@@ -94,20 +128,8 @@
         return;
       }
 
-      document.getElementById('nomeRepertorio').textContent = repertorio.nome;
-
-      const hoje = new Date().toISOString().split('T')[0];
-      const diffDias = Math.ceil((new Date(repertorio.data_evento) - new Date(hoje)) / 86400000);
-
-      if (repertorio.data_evento === hoje) {
-        document.getElementById('saudacao').textContent = '🎶 Bom culto! Hoje é o dia deste repertório.';
-        document.getElementById('infoData').textContent = '';
-      } else if (diffDias > 0) {
-        document.getElementById('infoData').textContent = `${formatarData(repertorio.data_evento)} — faltam ${diffDias} dia(s)`;
-      } else {
-        document.getElementById('infoData').textContent = `${formatarData(repertorio.data_evento)} (já passou)`;
-      }
-
+      repertorioAtual = repertorio;
+      atualizarCabecalhoVisual();
       await carregarItens();
     }
 
@@ -150,13 +172,55 @@
       modoEdicao = !modoEdicao;
       document.getElementById('btnEditar').textContent = modoEdicao ? 'Concluir edição' : 'Editar repertório';
       document.getElementById('areaAdicionar').style.display = modoEdicao ? 'block' : 'none';
+      document.getElementById('editarCabecalho').style.display = modoEdicao ? 'block' : 'none';
 
-      if (modoEdicao && todasMusicas.length === 0) {
-        const { data } = await sbClient.from('musicas').select('id, titulo').order('titulo');
-        todasMusicas = data || [];
+      if (modoEdicao) {
+        document.getElementById('editNome').value = repertorioAtual.nome;
+        document.getElementById('editData').value = repertorioAtual.data_evento;
+
+        if (todasMusicas.length === 0) {
+          const { data } = await sbClient.from('musicas').select('id, titulo').order('titulo');
+          todasMusicas = data || [];
+        }
       }
 
       renderizarLista();
+    });
+
+    document.getElementById('btnSalvarCabecalho').addEventListener('click', async () => {
+      const novoNome = document.getElementById('editNome').value.trim();
+      const novaData = document.getElementById('editData').value;
+      if (!novoNome || !novaData) {
+        alert('Preenche nome e data.');
+        return;
+      }
+
+      const { error } = await sbClient
+        .from('repertorios')
+        .update({ nome: novoNome, data_evento: novaData })
+        .eq('id', repertorioId);
+
+      if (error) {
+        alert('Erro ao salvar: ' + error.message);
+        return;
+      }
+
+      repertorioAtual.nome = novoNome;
+      repertorioAtual.data_evento = novaData;
+      atualizarCabecalhoVisual();
+      alert('Alterações salvas!');
+    });
+
+    document.getElementById('btnExcluirRepertorio').addEventListener('click', async () => {
+      if (!confirm(`Tem certeza que quer excluir o repertório "${repertorioAtual.nome}"? Essa ação não pode ser desfeita.`)) return;
+
+      const { error } = await sbClient.from('repertorios').delete().eq('id', repertorioId);
+      if (error) {
+        alert('Erro ao excluir: ' + error.message);
+        return;
+      }
+
+      window.location.href = 'index.html';
     });
 
     async function mover(indice, direcao) {
