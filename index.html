@@ -34,6 +34,39 @@
       max-width: none;
     }
 
+    #botoesTopo { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    #btnAtualizar {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid #33426b;
+      color: #FDF8F1;
+      box-shadow: none;
+      line-height: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+    }
+    #btnAtualizar:hover { background: rgba(255, 255, 255, 0.12); filter: none; }
+    #btnAtualizar .iconeAtualizar { font-size: 14px; }
+    #btnAtualizar .rotuloAtualizar {
+      font-size: 6.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: #94A3B8;
+    }
+    #btnAtualizar.girando .iconeAtualizar { animation: girarAtualizar 0.8s linear infinite; }
+    @keyframes girarAtualizar {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     #menuConfig { position: relative; flex-shrink: 0; }
     #btnConfig {
       width: 38px;
@@ -151,19 +184,73 @@
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       transition: background 0.15s ease;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
     #lista a:active { background: rgba(19, 27, 48, 0.6); }
+
+    #lista .linhaSelecao {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+      margin-bottom: 8px;
+      color: #E5E7EB;
+      font-size: 16px;
+      background: rgba(19, 27, 48, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #lista .linhaSelecao input[type="checkbox"] { width: 20px; height: 20px; margin: 0; flex-shrink: 0; }
+    #lista .linhaSelecao .tituloSelecao { flex: 1; }
+
+    #barraSelecao {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+    }
+    #barraSelecao.ativa { display: flex; }
+    #barraSelecao label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #E5E7EB;
+      cursor: pointer;
+    }
+    #barraSelecao label input[type="checkbox"] { width: 18px; height: 18px; margin: 0; }
+    .acoesSelecao { display: flex; gap: 8px; }
+    .acoesSelecao button { margin: 0; width: auto; padding: 8px 14px; font-size: 13px; }
+    button.perigo { background: #7F1D1D; color: #FEE2E2; border: 1px solid #991B1B; }
   </style>
 </head>
 <body>
   <div id="topo">
     <div id="logoTopo"><img src="logo.png" alt="G11 Cifras"></div>
-    <div id="menuConfig">
-      <button id="btnConfig" type="button" aria-label="Configurações">⚙️</button>
-      <div id="dropdownConfig">
-        <a href="#" id="btnSair">Sair</a>
-        <a href="importar.html" id="menuImportar" style="display:none;">📥 Importar músicas</a>
-        <a href="admin.html" id="menuAdmin" style="display:none;">👤 Gerenciar usuários</a>
+    <div id="botoesTopo">
+      <button id="btnAtualizar" type="button" aria-label="Buscar atualizações">
+        <span class="iconeAtualizar">🔄</span>
+        <span class="rotuloAtualizar">atualizar</span>
+      </button>
+      <div id="menuConfig">
+        <button id="btnConfig" type="button" aria-label="Configurações">⚙️</button>
+        <div id="dropdownConfig">
+          <a href="#" id="btnSair">Sair</a>
+          <a href="importar.html" id="menuImportar" style="display:none;">📥 Importar músicas</a>
+          <a href="admin.html" id="menuAdmin" style="display:none;">👤 Gerenciar usuários</a>
+        </div>
       </div>
     </div>
   </div>
@@ -180,6 +267,13 @@
   </div>
 
   <div id="contador"></div>
+  <div id="barraSelecao">
+    <label><input type="checkbox" id="checkSelecionarTodas"> Selecionar todas</label>
+    <div class="acoesSelecao">
+      <button type="button" id="btnApagarSelecionadas" class="perigo">🗑️ Apagar (<span id="contadorSelecionados">0</span>)</button>
+      <button type="button" id="btnCancelarSelecao" class="secundario">Cancelar</button>
+    </div>
+  </div>
   <div id="lista">Carregando...</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -188,6 +282,11 @@
   <script src="offline.js"></script>
   <script>
     let todasMusicas = [];
+    let ehAdminGlobal = false;
+    let modoSelecao = false;
+    let selecionadosParaApagar = new Set();
+    let pressTimer = null;
+    let pressMoveu = false;
 
     function normalizar(texto) {
       return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -240,12 +339,66 @@
       const container = document.getElementById('lista');
       document.getElementById('contador').textContent = `${lista.length} música(s)`;
       if (lista.length === 0) {
-        container.innerHTML = '<p style="color:#64748B">Nenhuma música encontrada.</p>';
+        container.innerHTML = modoSelecao ? '' : '<p style="color:#64748B">Nenhuma música encontrada.</p>';
+        atualizarBarraSelecao(lista);
         return;
       }
-      container.innerHTML = lista.map(m =>
-        `<a href="cifra.html?id=${m.id}">${m.titulo}</a>`
-      ).join('');
+      if (modoSelecao) {
+        container.innerHTML = lista.map(m => `
+          <div class="linhaSelecao" data-id="${m.id}">
+            <input type="checkbox" class="checkSelecao" data-id="${m.id}" ${selecionadosParaApagar.has(String(m.id)) ? 'checked' : ''}>
+            <span class="tituloSelecao">${m.titulo}</span>
+          </div>
+        `).join('');
+      } else {
+        container.innerHTML = lista.map(m =>
+          `<a href="cifra.html?id=${m.id}" data-id="${m.id}">${m.titulo}</a>`
+        ).join('');
+      }
+      atualizarBarraSelecao(lista);
+    }
+
+    function listaAtualFiltrada() {
+      return buscar(document.getElementById('busca').value);
+    }
+
+    function ativarModoSelecao(idInicial) {
+      if (!ehAdminGlobal || modoSelecao) return;
+      modoSelecao = true;
+      selecionadosParaApagar = new Set([String(idInicial)]);
+      document.getElementById('barraSelecao').classList.add('ativa');
+      renderizar(listaAtualFiltrada());
+    }
+
+    function sairDoModoSelecao() {
+      modoSelecao = false;
+      selecionadosParaApagar = new Set();
+      document.getElementById('barraSelecao').classList.remove('ativa');
+      renderizar(listaAtualFiltrada());
+    }
+
+    function alternarSelecaoMusica(id, marcado) {
+      if (marcado) selecionadosParaApagar.add(String(id)); else selecionadosParaApagar.delete(String(id));
+      atualizarBarraSelecao(listaAtualFiltrada());
+    }
+
+    function atualizarBarraSelecao(listaVisivel) {
+      document.getElementById('contadorSelecionados').textContent = selecionadosParaApagar.size;
+      const lista = listaVisivel || [];
+      const todosMarcadosAgora = lista.length > 0 && lista.every(m => selecionadosParaApagar.has(String(m.id)));
+      document.getElementById('checkSelecionarTodas').checked = todosMarcadosAgora;
+    }
+
+    function iniciarPressTimer(id) {
+      pressMoveu = false;
+      pressTimer = setTimeout(() => {
+        if (!pressMoveu) ativarModoSelecao(id);
+      }, 550);
+    }
+
+    function cancelarPressTimer() {
+      clearTimeout(pressTimer);
+      pressTimer = null;
     }
 
     function formatarData(iso) {
@@ -366,6 +519,96 @@
       document.getElementById('dropdownConfig').classList.remove('aberto');
     });
 
+    document.getElementById('btnAtualizar').addEventListener('click', async () => {
+      const botao = document.getElementById('btnAtualizar');
+      if (botao.classList.contains('girando')) return;
+      botao.classList.add('girando');
+      try {
+        if ('caches' in window) {
+          const nomes = await caches.keys();
+          await Promise.all(nomes.map(nome => caches.delete(nome)));
+        }
+        if ('serviceWorker' in navigator) {
+          const registros = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registros.map(registro => registro.update()));
+        }
+      } catch (e) {}
+      location.reload();
+    });
+
+    const listaEl = document.getElementById('lista');
+
+    listaEl.addEventListener('touchstart', (e) => {
+      if (!ehAdminGlobal || modoSelecao) return;
+      const linha = e.target.closest('[data-id]');
+      if (!linha) return;
+      iniciarPressTimer(linha.getAttribute('data-id'));
+    }, { passive: true });
+
+    listaEl.addEventListener('touchmove', () => {
+      pressMoveu = true;
+      cancelarPressTimer();
+    });
+
+    listaEl.addEventListener('touchend', () => {
+      cancelarPressTimer();
+    });
+
+    listaEl.addEventListener('contextmenu', (e) => {
+      if (!ehAdminGlobal) return;
+      const linha = e.target.closest('[data-id]');
+      if (!linha) return;
+      e.preventDefault();
+      if (modoSelecao) return;
+      ativarModoSelecao(linha.getAttribute('data-id'));
+    });
+
+    listaEl.addEventListener('change', (e) => {
+      if (!modoSelecao) return;
+      const caixa = e.target.closest('.checkSelecao');
+      if (!caixa) return;
+      alternarSelecaoMusica(caixa.getAttribute('data-id'), caixa.checked);
+    });
+
+    listaEl.addEventListener('click', (e) => {
+      if (!modoSelecao) return;
+      if (e.target.classList.contains('checkSelecao')) return;
+      const linha = e.target.closest('.linhaSelecao');
+      if (!linha) return;
+      const caixa = linha.querySelector('.checkSelecao');
+      caixa.checked = !caixa.checked;
+      alternarSelecaoMusica(linha.getAttribute('data-id'), caixa.checked);
+    });
+
+    document.getElementById('checkSelecionarTodas').addEventListener('change', (e) => {
+      const lista = listaAtualFiltrada();
+      if (e.target.checked) lista.forEach(m => selecionadosParaApagar.add(String(m.id)));
+      else lista.forEach(m => selecionadosParaApagar.delete(String(m.id)));
+      renderizar(lista);
+    });
+
+    document.getElementById('btnCancelarSelecao').addEventListener('click', () => {
+      sairDoModoSelecao();
+    });
+
+    document.getElementById('btnApagarSelecionadas').addEventListener('click', async () => {
+      if (selecionadosParaApagar.size === 0) return;
+      const ok = confirm(`Apagar ${selecionadosParaApagar.size} música(s)? Essa ação não pode ser desfeita.`);
+      if (!ok) return;
+
+      const ids = [...selecionadosParaApagar];
+      const { error } = await sbClient.from('musicas').delete().in('id', ids);
+      if (error) {
+        alert('Erro ao apagar: ' + error.message);
+        console.error(error);
+        return;
+      }
+
+      todasMusicas = todasMusicas.filter(m => !selecionadosParaApagar.has(String(m.id)));
+      salvarCacheOffline('todasMusicas', todasMusicas);
+      sairDoModoSelecao();
+    });
+
     async function iniciar() {
       const sessao = await protegerPagina();
       if (!sessao) return;
@@ -373,6 +616,7 @@
       const perfil = await obterPerfil();
       const nome = perfil ? perfil.nome : "";
       const ehAdmin = perfil && perfil.papel === "administrador";
+      ehAdminGlobal = !!ehAdmin;
 
       document.getElementById('saudacaoTopo').textContent = `${saudacaoPorHora()}, ${nome}!`;
 
