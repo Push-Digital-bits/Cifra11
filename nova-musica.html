@@ -46,6 +46,9 @@ button { margin-top: 24px; width: 100%; }
 <label for="conteudoMusica">Cifra / letra</label>
 <textarea id="conteudoMusica" placeholder="Cole aqui a cifra ou letra da música..."></textarea>
 
+<label for="referencia">Referência (link do YouTube) — opcional</label>
+<input type="url" id="referencia" placeholder="https://www.youtube.com/watch?v=...">
+
 <button id="btnSalvar">Salvar música</button>
 <div id="status"></div>
 </div>
@@ -57,6 +60,7 @@ button { margin-top: 24px; width: 100%; }
 document.getElementById('btnSalvar').addEventListener('click', async () => {
 const titulo = document.getElementById('titulo').value.trim();
 const conteudo = document.getElementById('conteudoMusica').value;
+const referencia = document.getElementById('referencia').value.trim();
 
 if (!titulo || !conteudo.trim()) {
 alert('Preenche o título e a cifra/letra da música.');
@@ -67,7 +71,7 @@ document.getElementById('status').textContent = 'Salvando...';
 
 const { data: musica, error } = await sbClient
 .from('musicas')
-.insert({ titulo: titulo, conteudo: conteudo })
+.insert({ titulo: titulo, conteudo: conteudo, referencia: referencia || null })
 .select()
 .single();
 
@@ -80,6 +84,7 @@ return;
 document.getElementById('status').textContent = 'Música salva com sucesso!';
 document.getElementById('titulo').value = '';
 document.getElementById('conteudoMusica').value = '';
+document.getElementById('referencia').value = '';
 });
 
 async function iniciar() {
