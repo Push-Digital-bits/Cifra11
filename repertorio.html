@@ -70,20 +70,30 @@ border-bottom: 1px solid #1E293B;
 
 #vazio { color: #64748B; }
 
-#telaCifra { display: none; }
+#telaCifra {
+display: none;
+--tema-bg: #000000;
+--tema-texto: #F97316;
+--tema-borda: rgba(255,255,255,0.18);
+background: var(--tema-bg);
+border-radius: 14px;
+padding: 14px;
+margin: 0 -14px;
+transition: background 0.2s ease;
+}
 #topoCifra {
 display: flex;
 justify-content: space-between;
 align-items: flex-start;
 margin-bottom: 16px;
 padding-bottom: 14px;
-border-bottom: 1px solid #1E293B;
+border-bottom: 1px solid var(--tema-borda);
 }
 #setaVoltar {
 font-size: 20px;
-color: #E5E7EB;
-background: #16213A;
-border: 1px solid #2A3A5C;
+color: var(--tema-texto);
+background: transparent;
+border: 1px solid var(--tema-borda);
 width: 38px;
 height: 38px;
 border-radius: 10px;
@@ -92,17 +102,18 @@ align-items: center;
 justify-content: center;
 flex-shrink: 0;
 }
-#tituloCifra { font-size: 17px; font-weight: 700; color: #FDF8F1; text-align: center; flex: 1; margin: 0 10px; }
+#tituloCifra { font-size: 17px; font-weight: 700; color: var(--tema-texto); text-align: center; flex: 1; margin: 0 10px; }
 #setaProxima {
 font-size: 20px;
-color: #E5E7EB;
+color: var(--tema-texto);
 text-align: right;
 flex-shrink: 0;
 min-width: 38px;
 }
 #nomeProxima {
 font-size: 10px;
-color: #64748B;
+color: var(--tema-texto);
+opacity: 0.7;
 display: block;
 text-align: right;
 max-width: 110px;
@@ -112,16 +123,17 @@ overflow: hidden;
 text-overflow: ellipsis;
 }
 #conteudoCifra {
-white-space: pre-wrap;
-word-break: break-word;
+white-space: pre;
+overflow-x: auto;
+-webkit-overflow-scrolling: touch;
 font-family: 'Courier New', monospace;
-font-size: 16px;
-line-height: 1.55;
-background: #16213A;
-border: 1px solid #2A3A5C;
-border-radius: 12px;
-padding: 18px 16px;
-color: #E5E7EB;
+font-size: 22px;
+font-weight: 700;
+line-height: 1.65;
+background: transparent;
+border: none;
+padding: 4px 2px 90px;
+color: var(--tema-texto);
 }
 </style>
 </head>
@@ -170,6 +182,7 @@ color: #E5E7EB;
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabaseClient.js"></script>
 <script src="auth.js"></script>
+<script src="tema.js"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const repertorioId = params.get('id');
@@ -179,6 +192,7 @@ let modoEdicao = false;
 let todasMusicas = [];
 let repertorioAtual = null;
 let ehAdmin = false;
+let controleTema = null;
 
 function formatarData(iso) {
 const [ano, mes, dia] = iso.split('-');
@@ -390,12 +404,14 @@ document.getElementById('setaProxima').style.visibility = proxima ? 'visible' : 
 
 document.getElementById('telaLista').style.display = 'none';
 document.getElementById('telaCifra').style.display = 'block';
+if (controleTema) controleTema.mostrar();
 }
 
 document.getElementById('setaVoltar').addEventListener('click', (e) => {
 e.preventDefault();
 document.getElementById('telaCifra').style.display = 'none';
 document.getElementById('telaLista').style.display = 'block';
+if (controleTema) controleTema.esconder();
 });
 
 document.getElementById('setaProxima').addEventListener('click', (e) => {
@@ -413,6 +429,8 @@ ehAdmin = !!(perfil && perfil.papel === 'administrador');
 if (ehAdmin) {
 document.getElementById('btnEditar').style.display = 'inline-block';
 }
+
+controleTema = iniciarSeletorTema(document.getElementById('telaCifra'), { visivelDeInicio: false });
 
 carregar();
 }
