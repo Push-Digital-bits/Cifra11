@@ -29,12 +29,14 @@ function mostrarAvisoOffline(mensagem) {
   aviso.textContent = mensagem || '🔌 Sem internet — mostrando dados salvos';
   aviso.style.display = 'block';
   document.body.style.paddingTop = '44px';
+  document.body.classList.add('avisoAtivo');
 }
 
 function esconderAvisoOffline() {
   const aviso = document.getElementById('avisoOffline');
   if (aviso) aviso.style.display = 'none';
   document.body.style.paddingTop = '';
+  document.body.classList.remove('avisoAtivo');
 }
 
 if ('serviceWorker' in navigator) {
