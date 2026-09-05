@@ -139,6 +139,9 @@
     <label for="usuarioCadastro">Nome de usuário (sem espaços)</label>
     <input type="text" id="usuarioCadastro" required>
 
+    <label for="codigoGrupoCadastro">Código do grupo</label>
+    <input type="text" id="codigoGrupoCadastro" inputmode="numeric" maxlength="6" placeholder="Ex: 011519" required>
+
     <label for="senhaCadastro">Senha</label>
     <input type="password" id="senhaCadastro" required>
 
@@ -222,8 +225,15 @@
 
     const nome = document.getElementById("nomeCadastro").value.trim();
     const usuario = document.getElementById("usuarioCadastro").value.trim().toLowerCase().replace(/\s+/g, "");
+    const codigoGrupo = document.getElementById("codigoGrupoCadastro").value.trim();
     const senha = document.getElementById("senhaCadastro").value;
     const senha2 = document.getElementById("senhaCadastro2").value;
+
+    if (!/^\d{6}$/.test(codigoGrupo)) {
+      msgErro.textContent = "O código do grupo tem 6 números.";
+      msgErro.style.display = "block";
+      return;
+    }
 
     if (senha !== senha2) {
       msgErro.textContent = "As senhas não são iguais.";
@@ -255,13 +265,27 @@
       return;
     }
 
-    const { error: erroPerfil } = await sbClient
-      .from("perfis")
-      .insert({ id: data.user.id, nome: nome, papel: "membro" });
+    const { data: perfilCriado, error: erroPerfil } = await sbClient.rpc("entrar_em_grupo", {
+      p_codigo: codigoGrupo,
+      p_nome: nome
+    });
 
     if (erroPerfil) {
-      msgErro.textContent = "Conta criada, mas houve um erro ao salvar o perfil: " + erroPerfil.message;
+      const msg = erroPerfil.message.includes("codigo_invalido")
+        ? "Código do grupo inválido. Confere com o administrador do seu grupo."
+        : erroPerfil.message.includes("ja_e_membro")
+        ? "Você já faz parte desse grupo."
+        : "Conta criada, mas houve um erro ao entrar no grupo: " + erroPerfil.message;
+      msgErro.textContent = msg;
       msgErro.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "Criar conta";
+      return;
+    }
+
+    if (perfilCriado && perfilCriado.status === "pendente") {
+      msgSucesso.textContent = "Conta criada! Seu grupo atingiu o limite de membros — você fica pendente até o administrador liberar mais vagas.";
+      msgSucesso.style.display = "block";
       btn.disabled = false;
       btn.textContent = "Criar conta";
       return;
