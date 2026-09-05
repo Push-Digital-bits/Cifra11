@@ -57,6 +57,8 @@ button { margin-top: 24px; width: 100%; }
 <script src="supabaseClient.js"></script>
 <script src="auth.js"></script>
 <script>
+let grupoIdAtual = null;
+
 document.getElementById('btnSalvar').addEventListener('click', async () => {
 const titulo = document.getElementById('titulo').value.trim();
 const conteudo = document.getElementById('conteudoMusica').value;
@@ -71,7 +73,7 @@ document.getElementById('status').textContent = 'Salvando...';
 
 const { data: musica, error } = await sbClient
 .from('musicas')
-.insert({ titulo: titulo, conteudo: conteudo, referencia: referencia || null })
+.insert({ titulo: titulo, conteudo: conteudo, referencia: referencia || null, grupo_id: grupoIdAtual })
 .select()
 .single();
 
@@ -92,13 +94,13 @@ const sessao = await protegerPagina();
 if (!sessao) return;
 
 const perfil = await obterPerfil();
-const ehAdmin = !!(perfil && perfil.papel === 'administrador');
 
-if (!ehAdmin) {
+if (!perfil || !perfil.podeEditarConteudo) {
 window.location.href = 'index.html';
 return;
 }
 
+grupoIdAtual = perfil.grupoId;
 document.getElementById('conteudo').style.display = 'block';
 }
 
