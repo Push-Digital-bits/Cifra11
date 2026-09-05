@@ -1,5 +1,5 @@
 // sw.js — cache dos arquivos do app pra abrir mesmo sem internet (G11 Cifras)
-const CACHE_NOME = 'g11cifras-v2';
+const CACHE_NOME = 'g11cifras-v3';
 const CDN_SUPABASE = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
 const ARQUIVOS_ESSENCIAIS = [
@@ -11,6 +11,8 @@ const ARQUIVOS_ESSENCIAIS = [
   'nova-musica.html',
   'novo-repertorio.html',
   'importar.html',
+  'trocar-grupo.html',
+  'gerenciar-grupos.html',
   'estilo.css',
   'fundo.js',
   'fundo-login.png',
