@@ -35,7 +35,7 @@ align-items: center;
 justify-content: center;
 flex-shrink: 0;
 }
-.topo h1 { margin: 0; }
+.topo h1 { margin: 0; font-size: 18px; }
 .usuario {
 background: #16213A;
 border: 1px solid #2A3A5C;
@@ -46,10 +46,31 @@ display: flex;
 align-items: center;
 justify-content: space-between;
 gap: 10px;
+flex-wrap: wrap;
 }
+.usuario .info { flex: 1; min-width: 120px; }
 .usuario .nome { font-weight: 700; color: #E5E7EB; }
+.usuario .status-pendente { color: #F97316; font-size: 12px; font-weight: 700; margin-left: 6px; }
+.usuario .acoes { display: flex; gap: 6px; align-items: center; }
+.usuario select { margin: 0; width: auto; }
+button.pequeno { width: auto; padding: 8px 12px; font-size: 13px; margin: 0; }
+button.perigo { background: #7F1D1D; color: #FEE2E2; border: 1px solid #991B1B; }
+button.aprovar { background: #166534; color: #DCFCE7; border: 1px solid #15803D; }
 .carregando { text-align: center; color: #64748B; margin-top: 40px; }
 .aviso { text-align: center; color: #ff8080; margin-top: 40px; }
+#secaoCodigo {
+background: #16213A;
+border: 1px solid #2A3A5C;
+border-radius: 12px;
+padding: 16px;
+margin-bottom: 22px;
+}
+#secaoCodigo h3 { margin-top: 0; }
+#secaoCodigo .linha { display: flex; gap: 8px; align-items: center; }
+#secaoCodigo input { margin: 0; }
+#secaoCodigo button { width: auto; margin: 0; white-space: nowrap; }
+#vagas { color: #94A3B8; font-size: 13px; margin-top: 8px; }
+h2.secao { font-size: 14px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 0 10px; }
 </style>
 </head>
 <body>
@@ -60,27 +81,52 @@ gap: 10px;
 <div style="width:38px;"></div>
 </div>
 
+<div id="conteudo" style="display:none;">
+<div id="secaoCodigo">
+<h3>Código do grupo</h3>
+<div class="linha">
+<input type="text" id="campoCodigo" inputmode="numeric" maxlength="6">
+<button id="btnSalvarCodigo" class="pequeno">Salvar</button>
+</div>
+<div id="vagas"></div>
+</div>
+
+<h2 class="secao">Pendentes</h2>
+<div id="listaPendentes"><p style="color:#64748B">Nenhum membro pendente.</p></div>
+
+<h2 class="secao">Membros</h2>
 <div id="lista" class="carregando">Carregando...</div>
+</div>
 
 <script>
+let perfilAtual = null;
+
 (async () => {
 const sessao = await protegerPagina();
 if (!sessao) return;
 
 const perfil = await obterPerfil();
-if (!perfil || perfil.papel !== "administrador") {
-document.getElementById("lista").innerHTML =
+if (!perfil || !perfil.podeGerenciarGrupo) {
+document.getElementById("conteudo").style.display = "block";
+document.getElementById("secaoCodigo").style.display = "none";
+document.getElementById("lista").outerHTML =
 '<div class="aviso">Você não tem permissão pra acessar essa página.</div>';
+document.querySelector('h2.secao').style.display = 'none';
+document.getElementById('listaPendentes').style.display = 'none';
 return;
 }
 
+perfilAtual = perfil;
+document.getElementById("conteudo").style.display = "block";
+document.getElementById("campoCodigo").value = perfil.grupo ? perfil.grupo.codigo : "";
 carregarUsuarios();
 })();
 
 async function carregarUsuarios() {
 const { data: usuarios, error } = await sbClient
 .from("perfis")
-.select("id, nome, papel")
+.select("id, nome, papel, status")
+.eq("grupo_id", perfilAtual.grupoId)
 .order("nome");
 
 if (error) {
@@ -89,22 +135,44 @@ document.getElementById("lista").innerHTML =
 return;
 }
 
-const lista = document.getElementById("lista");
-lista.innerHTML = "";
-lista.classList.remove("carregando");
+const ativos = usuarios.filter((u) => u.status !== "pendente");
+const pendentes = usuarios.filter((u) => u.status === "pendente");
 
-usuarios.forEach((u) => {
-const div = document.createElement("div");
-div.className = "usuario";
-div.innerHTML = `
+const limite = perfilAtual.grupo ? perfilAtual.grupo.limite_membros : null;
+document.getElementById("vagas").textContent = limite
+? `${ativos.length} de ${limite} vaga(s) usada(s)`
+: "";
+
+const listaPendentes = document.getElementById("listaPendentes");
+if (pendentes.length === 0) {
+listaPendentes.innerHTML = '<p style="color:#64748B">Nenhum membro pendente.</p>';
+} else {
+listaPendentes.innerHTML = pendentes.map((u) => `
+<div class="usuario" data-id="${u.id}">
+<div class="info"><span class="nome">${u.nome}</span><span class="status-pendente">PENDENTE</span></div>
+<div class="acoes">
+<button class="pequeno aprovar" data-acao="aprovar" data-id="${u.id}">Aprovar</button>
+<button class="pequeno perigo" data-acao="remover" data-id="${u.id}">Remover</button>
+</div>
+</div>
+`).join("");
+}
+
+const lista = document.getElementById("lista");
+lista.classList.remove("carregando");
+lista.innerHTML = ativos.map((u) => `
+<div class="usuario" data-id="${u.id}">
 <span class="nome">${u.nome}</span>
-<select data-id="${u.id}">
+<div class="acoes">
+<select data-id="${u.id}" ${u.papel === "administrador" ? "" : ""}>
 <option value="membro" ${u.papel === "membro" ? "selected" : ""}>Membro</option>
+<option value="editor" ${u.papel === "editor" ? "selected" : ""}>Editor</option>
 <option value="administrador" ${u.papel === "administrador" ? "selected" : ""}>Administrador</option>
 </select>
-`;
-lista.appendChild(div);
-});
+${u.papel !== "administrador" ? `<button class="pequeno perigo" data-acao="remover" data-id="${u.id}">Remover</button>` : ""}
+</div>
+</div>
+`).join("");
 
 lista.querySelectorAll("select").forEach((sel) => {
 sel.addEventListener("change", async (e) => {
@@ -118,10 +186,52 @@ const { error } = await sbClient
 
 if (error) {
 alert("Erro ao atualizar: " + error.message);
+carregarUsuarios();
 }
 });
 });
+
+document.querySelectorAll('[data-acao="remover"]').forEach((btn) => {
+btn.addEventListener("click", async () => {
+if (!confirm("Remover esse membro do grupo?")) return;
+const id = btn.getAttribute("data-id");
+const { error } = await sbClient.from("perfis").delete().eq("id", id);
+if (error) {
+alert("Erro ao remover: " + error.message);
+return;
 }
+carregarUsuarios();
+});
+});
+
+document.querySelectorAll('[data-acao="aprovar"]').forEach((btn) => {
+btn.addEventListener("click", async () => {
+const id = btn.getAttribute("data-id");
+const { error } = await sbClient.from("perfis").update({ status: "ativo" }).eq("id", id);
+if (error) {
+alert("Erro ao aprovar: " + error.message);
+return;
+}
+carregarUsuarios();
+});
+});
+}
+
+document.getElementById("btnSalvarCodigo").addEventListener("click", async () => {
+const novoCodigo = document.getElementById("campoCodigo").value.trim();
+if (!/^\d{6}$/.test(novoCodigo)) {
+alert("O código precisa ter 6 números.");
+return;
+}
+
+const { error } = await sbClient.from("grupos").update({ codigo: novoCodigo }).eq("id", perfilAtual.grupoId);
+if (error) {
+alert("Erro ao salvar código: " + error.message);
+return;
+}
+
+alert("Código atualizado! O dono do aplicativo é notificado sempre que o código do grupo muda.");
+});
 </script>
 
 </body>
