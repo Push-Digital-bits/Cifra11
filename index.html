@@ -672,9 +672,9 @@
         return;
       }
 
-      if (perfil.grupo && perfil.grupo.imagem_url) {
+      if (perfil.grupo && perfil.grupo.nome) {
         document.getElementById('nomeGrupo').textContent = perfil.grupo.nome;
-        document.getElementById('imagemGrupo').src = perfil.grupo.imagem_url;
+        document.getElementById('imagemGrupo').src = perfil.grupo.imagem_url || 'logo.png';
         document.getElementById('bannerGrupo').style.display = 'flex';
       }
 
