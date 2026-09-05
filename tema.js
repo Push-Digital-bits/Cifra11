@@ -285,7 +285,11 @@ function iniciarSeletorTema(elementoAlvo, opcoes = {}) {
     painel.classList.toggle('aberto');
   });
 
-  document.addEventListener('click', (e) => {
+  // pointerdown (em vez de click) fecha o painel de forma confiável em qualquer
+  // toque fora dele — em alguns navegadores (principalmente iOS/Safari), um toque
+  // em elementos sem onclick próprio (como o texto da cifra) não dispara "click"
+  // no elemento pai, e o painel nunca fechava.
+  document.addEventListener('pointerdown', (e) => {
     if (!painel.contains(e.target) && e.target !== botao) {
       painel.classList.remove('aberto');
     }
