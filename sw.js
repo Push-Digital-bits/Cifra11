@@ -20,8 +20,7 @@ const ARQUIVOS_ESSENCIAIS = [
   'tema.js',
   'offline.js',
   'manifest.json',
-  'icon-192.png',
-  'icon-512.png'
+  'icon.svg'
 ];
 
 self.addEventListener('install', (evento) => {
