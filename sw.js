@@ -1,5 +1,5 @@
 // sw.js — cache dos arquivos do app pra abrir mesmo sem internet (G11 Cifras)
-const CACHE_NOME = 'g11cifras-v1';
+const CACHE_NOME = 'g11cifras-v2';
 const CDN_SUPABASE = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
 const ARQUIVOS_ESSENCIAIS = [
@@ -19,7 +19,9 @@ const ARQUIVOS_ESSENCIAIS = [
   'supabaseClient.js',
   'tema.js',
   'offline.js',
-  'manifest.json'
+  'manifest.json',
+  'icon-192.png',
+  'icon-512.png'
 ];
 
 self.addEventListener('install', (evento) => {
