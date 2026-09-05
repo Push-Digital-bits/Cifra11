@@ -662,7 +662,7 @@ const sessao = await protegerPagina();
 if (!sessao) return;
 
 const perfil = await obterPerfil();
-ehAdmin = !!(perfil && perfil.papel === 'administrador');
+ehAdmin = !!(perfil && perfil.podeEditarConteudo);
 
 if (ehAdmin) {
 document.getElementById('btnEditar').style.display = 'inline-block';
