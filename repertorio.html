@@ -164,8 +164,8 @@ text-overflow: ellipsis;
 white-space: pre;
 overflow-x: auto;
 -webkit-overflow-scrolling: touch;
-font-family: 'Courier New', monospace;
-font-size: 22px;
+font-family: var(--tema-fonte, 'Courier New', monospace);
+font-size: var(--tema-tamanho, 22px);
 font-weight: 700;
 line-height: 1.65;
 background: transparent;
@@ -293,6 +293,7 @@ resize: vertical;
 <script src="supabaseClient.js"></script>
 <script src="auth.js"></script>
 <script src="tema.js"></script>
+<script src="offline.js"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const repertorioId = params.get('id');
@@ -328,18 +329,30 @@ document.getElementById('infoData').textContent = `${formatarData(repertorioAtua
 }
 
 async function carregar() {
+try {
 const { data: repertorio, error: erroRep } = await sbClient
 .from('repertorios').select('*').eq('id', repertorioId).single();
 
-if (erroRep || !repertorio) {
-document.getElementById('nomeRepertorio').textContent = 'Repertório não encontrado';
-console.error(erroRep);
-return;
-}
+if (erroRep || !repertorio) throw erroRep || new Error('não encontrado');
 
 repertorioAtual = repertorio;
 atualizarCabecalhoVisual();
 await carregarItens();
+salvarCacheOffline('repertorio_' + repertorioId, { repertorio: repertorioAtual, itens });
+esconderAvisoOffline();
+} catch (e) {
+console.error(e);
+const cache = lerCacheOffline('repertorio_' + repertorioId);
+if (cache) {
+repertorioAtual = cache.repertorio;
+itens = cache.itens;
+atualizarCabecalhoVisual();
+renderizarLista();
+mostrarAvisoOffline('🔌 Sem internet — mostrando repertório salvo');
+} else {
+document.getElementById('nomeRepertorio').textContent = 'Sem internet e sem versão salva deste repertório';
+}
+}
 }
 
 async function carregarItens() {
@@ -349,11 +362,7 @@ const { data: linhas, error } = await sbClient
 .eq('repertorio_id', repertorioId)
 .order('ordem');
 
-if (error) {
-document.getElementById('listaMusicas').textContent = 'Erro: ' + error.message;
-console.error(error);
-return;
-}
+if (error) throw error;
 
 itens = linhas.map(l => ({ relId: l.id, ordem: l.ordem, musica: l.musicas }));
 renderizarLista();
@@ -389,8 +398,13 @@ document.getElementById('editNome').value = repertorioAtual.nome;
 document.getElementById('editData').value = repertorioAtual.data_evento;
 
 if (todasMusicas.length === 0) {
-const { data } = await sbClient.from('musicas').select('id, titulo').order('titulo');
+try {
+const { data, error } = await sbClient.from('musicas').select('id, titulo').order('titulo');
+if (error) throw error;
 todasMusicas = data || [];
+} catch (e) {
+alert('Sem internet — não é possível carregar a lista de músicas pra adicionar agora.');
+}
 }
 }
 
