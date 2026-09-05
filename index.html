@@ -107,6 +107,27 @@
     #dropdownConfig a:last-child { border-bottom: none; }
     #dropdownConfig a:active { background: #0F172A; }
 
+    #bannerGrupo {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 4px 0 2px;
+    }
+    #bannerGrupo img {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    #bannerGrupo span {
+      font-size: 13px;
+      font-weight: 700;
+      color: #94A3B8;
+      letter-spacing: 0.3px;
+    }
+
     #saudacaoTopo {
       text-align: center;
       font-size: 14px;
@@ -114,6 +135,15 @@
       color: #FDF8F1;
       margin: 10px 0 16px;
     }
+
+    #telaBloqueada, #telaPendente {
+      display: none;
+      text-align: center;
+      margin-top: 60px;
+      padding: 0 12px;
+    }
+    #telaBloqueada .icone, #telaPendente .icone { font-size: 40px; margin-bottom: 14px; }
+    #telaBloqueada p, #telaPendente p { color: #94A3B8; font-size: 14px; line-height: 1.5; }
 
     #busca { margin-bottom: 14px; }
 
@@ -250,31 +280,48 @@
           <a href="#" id="btnSair">Sair</a>
           <a href="importar.html" id="menuImportar" style="display:none;">📥 Importar músicas</a>
           <a href="admin.html" id="menuAdmin" style="display:none;">👤 Gerenciar usuários</a>
+          <a href="gerenciar-grupos.html" id="menuGrupos" style="display:none;">🏛️ Gerenciar grupos</a>
+          <a href="#" id="menuTrocarPerfil" style="display:none;">🔄 Trocar de grupo</a>
         </div>
       </div>
     </div>
   </div>
+  <div id="bannerGrupo"><img id="imagemGrupo" alt=""><span id="nomeGrupo"></span></div>
   <div id="saudacaoTopo"></div>
 
-  <input type="text" id="busca" placeholder="Buscar música...">
-
-  <div id="repertorios"></div>
-
-  <div class="linksAcao">
-    <a id="linkNovoRepertorio" href="novo-repertorio.html" style="display:none;">+ Criar novo repertório</a>
-    <a id="linkNovaMusica" href="nova-musica.html" style="display:none;">🎵 Adicionar nova música</a>
-    <a id="linkYoutube" href="https://www.youtube.com/" target="_blank" rel="noopener" style="display:none;">▶️ Acessar o YouTube</a>
+  <div id="telaBloqueada">
+    <div class="icone">🔒</div>
+    <h2>Grupo bloqueado</h2>
+    <p>Seu grupo está temporariamente bloqueado.<br>Fale com o administrador do seu grupo ou do aplicativo.</p>
   </div>
 
-  <div id="contador"></div>
-  <div id="barraSelecao">
-    <label><input type="checkbox" id="checkSelecionarTodas"> Selecionar todas</label>
-    <div class="acoesSelecao">
-      <button type="button" id="btnApagarSelecionadas" class="perigo">🗑️ Apagar (<span id="contadorSelecionados">0</span>)</button>
-      <button type="button" id="btnCancelarSelecao" class="secundario">Cancelar</button>
+  <div id="telaPendente">
+    <div class="icone">⏳</div>
+    <h2>Aguardando aprovação</h2>
+    <p>Seu grupo atingiu o limite de membros.<br>Assim que o administrador liberar mais vagas, você terá acesso.</p>
+  </div>
+
+  <div id="conteudoPrincipal">
+    <input type="text" id="busca" placeholder="Buscar música...">
+
+    <div id="repertorios"></div>
+
+    <div class="linksAcao">
+      <a id="linkNovoRepertorio" href="novo-repertorio.html" style="display:none;">+ Criar novo repertório</a>
+      <a id="linkNovaMusica" href="nova-musica.html" style="display:none;">🎵 Adicionar nova música</a>
+      <a id="linkYoutube" href="https://www.youtube.com/" target="_blank" rel="noopener" style="display:none;">▶️ Acessar o YouTube</a>
     </div>
+
+    <div id="contador"></div>
+    <div id="barraSelecao">
+      <label><input type="checkbox" id="checkSelecionarTodas"> Selecionar todas</label>
+      <div class="acoesSelecao">
+        <button type="button" id="btnApagarSelecionadas" class="perigo">🗑️ Apagar (<span id="contadorSelecionados">0</span>)</button>
+        <button type="button" id="btnCancelarSelecao" class="secundario">Cancelar</button>
+      </div>
+    </div>
+    <div id="lista">Carregando...</div>
   </div>
-  <div id="lista">Carregando...</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabaseClient.js"></script>
@@ -614,22 +661,58 @@
       if (!sessao) return;
 
       const perfil = await obterPerfil();
-      const nome = perfil ? perfil.nome : "";
-      const ehAdmin = perfil && perfil.papel === "administrador";
-      ehAdminGlobal = !!ehAdmin;
-
-      document.getElementById('saudacaoTopo').textContent = `${saudacaoPorHora()}, ${nome}!`;
 
       document.getElementById('btnSair').addEventListener('click', (e) => {
         e.preventDefault();
         fazerLogout();
       });
 
-      if (ehAdmin) {
+      if (!perfil) {
+        document.getElementById('saudacaoTopo').textContent = 'Você ainda não faz parte de um grupo.';
+        return;
+      }
+
+      if (perfil.grupo && perfil.grupo.imagem_url) {
+        document.getElementById('nomeGrupo').textContent = perfil.grupo.nome;
+        document.getElementById('imagemGrupo').src = perfil.grupo.imagem_url;
+        document.getElementById('bannerGrupo').style.display = 'flex';
+      }
+
+      if (perfil.temMultiplosGrupos) {
+        const btnTrocar = document.getElementById('menuTrocarPerfil');
+        btnTrocar.style.display = 'block';
+        btnTrocar.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.location.href = 'trocar-grupo.html';
+        });
+      }
+
+      if (perfil.donoApp) {
+        document.getElementById('menuGrupos').style.display = 'block';
+      }
+
+      if (perfil.bloqueado) {
+        document.getElementById('telaBloqueada').style.display = 'block';
+        document.getElementById('conteudoPrincipal').style.display = 'none';
+        return;
+      }
+
+      if (perfil.status === 'pendente') {
+        document.getElementById('telaPendente').style.display = 'block';
+        document.getElementById('conteudoPrincipal').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('saudacaoTopo').textContent = `${saudacaoPorHora()}, ${perfil.nome}!`;
+      ehAdminGlobal = !!perfil.podeEditarConteudo;
+
+      if (perfil.podeEditarConteudo) {
         document.getElementById('linkNovoRepertorio').style.display = 'inline-block';
         document.getElementById('linkNovaMusica').style.display = 'inline-block';
         document.getElementById('linkYoutube').style.display = 'inline-block';
         document.getElementById('menuImportar').style.display = 'block';
+      }
+      if (perfil.podeGerenciarGrupo) {
         document.getElementById('menuAdmin').style.display = 'block';
       }
 
