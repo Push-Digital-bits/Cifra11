@@ -173,6 +173,55 @@ border: none;
 padding: 4px 2px 90px;
 color: var(--tema-texto);
 }
+
+#btnEditarMusicaRepertorio {
+display: none;
+margin: -6px 0 16px;
+width: auto;
+padding: 8px 14px;
+font-size: 13px;
+color: var(--tema-texto);
+background: rgba(255, 255, 255, 0.06);
+border: 1px solid var(--tema-borda);
+box-shadow: none;
+}
+#formEditarMusicaRepertorio {
+display: none;
+margin-bottom: 20px;
+background: rgba(255, 255, 255, 0.04);
+border: 1px solid var(--tema-borda);
+border-radius: 12px;
+padding: 16px;
+}
+#formEditarMusicaRepertorio label {
+display: block;
+font-size: 11px;
+font-weight: 700;
+color: #94A3B8;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+margin-top: 12px;
+margin-bottom: 5px;
+}
+#formEditarMusicaRepertorio label:first-of-type { margin-top: 0; }
+#formEditarMusicaRepertorio input[type="text"] { background: rgba(0,0,0,0.3); color: var(--tema-texto); }
+#formEditarMusicaRepertorio textarea {
+width: 100%;
+min-height: 260px;
+padding: 12px;
+border-radius: 12px;
+border: 1px solid #263252;
+background: rgba(0,0,0,0.3);
+color: var(--tema-texto);
+font-family: 'Courier New', monospace;
+font-size: 15px;
+line-height: 1.5;
+box-sizing: border-box;
+resize: vertical;
+}
+#formEditarMusicaRepertorio textarea:focus { outline: none; border-color: var(--tema-texto); }
+.botoesEdicao { display: flex; gap: 10px; margin-top: 16px; }
+.botoesEdicao button { margin: 0; width: auto; padding: 10px 16px; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -225,6 +274,17 @@ color: var(--tema-texto);
 →
 <span id="nomeProxima"></span>
 </a>
+</div>
+<button id="btnEditarMusicaRepertorio">✏️ Editar música</button>
+<div id="formEditarMusicaRepertorio">
+<label for="editTituloMusica">Título</label>
+<input type="text" id="editTituloMusica">
+<label for="editConteudoMusica">Cifra / letra</label>
+<textarea id="editConteudoMusica"></textarea>
+<div class="botoesEdicao">
+<button id="btnSalvarMusicaRepertorio">Salvar</button>
+<button id="btnCancelarEdicaoMusicaRepertorio" class="secundario">Cancelar</button>
+</div>
 </div>
 <div id="conteudoCifra"></div>
 </div>
@@ -516,6 +576,8 @@ indiceAtual = indice;
 const musica = itens[indice].musica;
 document.getElementById('tituloCifra').textContent = musica.titulo;
 document.getElementById('conteudoCifra').textContent = musica.conteudo;
+document.getElementById('formEditarMusicaRepertorio').style.display = 'none';
+document.getElementById('conteudoCifra').style.display = 'block';
 
 const proxima = itens[indice + 1];
 document.getElementById('nomeProxima').textContent = proxima ? proxima.musica.titulo : '';
@@ -528,9 +590,48 @@ if (controleTema) controleTema.mostrar();
 
 document.getElementById('setaVoltar').addEventListener('click', (e) => {
 e.preventDefault();
+document.getElementById('formEditarMusicaRepertorio').style.display = 'none';
+document.getElementById('conteudoCifra').style.display = 'block';
 document.getElementById('telaCifra').style.display = 'none';
 document.getElementById('telaLista').style.display = 'block';
 if (controleTema) controleTema.esconder();
+});
+
+document.getElementById('btnEditarMusicaRepertorio').addEventListener('click', () => {
+const musica = itens[indiceAtual].musica;
+document.getElementById('editTituloMusica').value = musica.titulo;
+document.getElementById('editConteudoMusica').value = musica.conteudo;
+document.getElementById('conteudoCifra').style.display = 'none';
+document.getElementById('formEditarMusicaRepertorio').style.display = 'block';
+});
+
+document.getElementById('btnCancelarEdicaoMusicaRepertorio').addEventListener('click', () => {
+document.getElementById('formEditarMusicaRepertorio').style.display = 'none';
+document.getElementById('conteudoCifra').style.display = 'block';
+});
+
+document.getElementById('btnSalvarMusicaRepertorio').addEventListener('click', async () => {
+const novoTitulo = document.getElementById('editTituloMusica').value.trim();
+const novoConteudo = document.getElementById('editConteudoMusica').value;
+if (!novoTitulo) {
+alert('Preenche o título.');
+return;
+}
+
+const musica = itens[indiceAtual].musica;
+const { error } = await sbClient.from('musicas').update({ titulo: novoTitulo, conteudo: novoConteudo }).eq('id', musica.id);
+if (error) {
+alert('Erro ao salvar: ' + error.message);
+console.error(error);
+return;
+}
+
+musica.titulo = novoTitulo;
+musica.conteudo = novoConteudo;
+document.getElementById('tituloCifra').textContent = novoTitulo;
+document.getElementById('conteudoCifra').textContent = novoConteudo;
+document.getElementById('formEditarMusicaRepertorio').style.display = 'none';
+document.getElementById('conteudoCifra').style.display = 'block';
 });
 
 document.getElementById('setaProxima').addEventListener('click', (e) => {
@@ -547,6 +648,7 @@ ehAdmin = !!(perfil && perfil.papel === 'administrador');
 
 if (ehAdmin) {
 document.getElementById('btnEditar').style.display = 'inline-block';
+document.getElementById('btnEditarMusicaRepertorio').style.display = 'inline-block';
 }
 
 controleTema = iniciarSeletorTema(document.getElementById('telaCifra'), { visivelDeInicio: false });
