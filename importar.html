@@ -157,6 +157,10 @@ selecionados.clear();
 renderizarLista();
 });
 
+function normalizarTitulo(titulo) {
+return titulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
 document.getElementById('btnImportar').addEventListener('click', async () => {
 if (selecionados.size === 0) {
 alert('Marque pelo menos uma música.');
@@ -168,12 +172,42 @@ document.querySelectorAll('#lista input[type="text"]').forEach(campo => {
 titulosEditados[Number(campo.getAttribute('data-indice'))] = campo.value.trim();
 });
 
-const selecionadas = [...selecionados].map(indice => ({
+const candidatas = [...selecionados].map(indice => ({
 titulo: titulosEditados[indice] !== undefined ? titulosEditados[indice] : notasCarregadas[indice].titulo,
 conteudo: notasCarregadas[indice].conteudo
 }));
 
-document.getElementById('status').textContent = `Importando ${selecionadas.length} músicas...`;
+document.getElementById('status').textContent = 'Verificando músicas já existentes...';
+
+const { data: existentesData, error: erroExistentes } = await sbClient.from('musicas').select('titulo');
+if (erroExistentes) {
+document.getElementById('status').textContent = 'Erro ao verificar duplicadas: ' + erroExistentes.message;
+console.error(erroExistentes);
+return;
+}
+
+const titulosExistentes = new Set((existentesData || []).map(m => normalizarTitulo(m.titulo)));
+const titulosDoLote = new Set();
+const selecionadas = [];
+let duplicadas = 0;
+
+candidatas.forEach(nota => {
+const chave = normalizarTitulo(nota.titulo);
+if (titulosExistentes.has(chave) || titulosDoLote.has(chave)) {
+duplicadas++;
+return;
+}
+titulosDoLote.add(chave);
+selecionadas.push(nota);
+});
+
+if (selecionadas.length === 0) {
+document.getElementById('status').textContent = `Nenhuma música nova pra importar — ${duplicadas} já existiam no banco.`;
+return;
+}
+
+const sufixoDuplicadas = duplicadas > 0 ? ` (${duplicadas} já existiam e foram ignoradas)` : '';
+document.getElementById('status').textContent = `Importando ${selecionadas.length} músicas novas${sufixoDuplicadas}...`;
 
 // Envia em lotes de 50 pra não sobrecarregar
 for (let i = 0; i < selecionadas.length; i += 50) {
@@ -186,7 +220,7 @@ return;
 }
 }
 
-document.getElementById('status').textContent = `${selecionadas.length} músicas importadas com sucesso!`;
+document.getElementById('status').textContent = `${selecionadas.length} música(s) nova(s) importada(s) com sucesso!${sufixoDuplicadas}`;
 });
 
 async function iniciar() {
