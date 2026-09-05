@@ -56,12 +56,71 @@
     color: var(--tema-texto);
     min-height: 40px;
   }
+  #btnEditarMusica {
+    display: none;
+    margin: -6px 0 16px;
+    width: auto;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--tema-texto);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--tema-borda);
+    box-shadow: none;
+  }
+  #formEditarMusica {
+    display: none;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--tema-borda);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  #formEditarMusica label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 12px;
+    margin-bottom: 5px;
+  }
+  #formEditarMusica label:first-of-type { margin-top: 0; }
+  #formEditarMusica input[type="text"] { background: rgba(0,0,0,0.3); color: var(--tema-texto); }
+  #formEditarMusica textarea {
+    width: 100%;
+    min-height: 260px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #263252;
+    background: rgba(0,0,0,0.3);
+    color: var(--tema-texto);
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    line-height: 1.5;
+    box-sizing: border-box;
+    resize: vertical;
+  }
+  #formEditarMusica textarea:focus { outline: none; border-color: var(--tema-texto); }
+  .botoesEdicao { display: flex; gap: 10px; margin-top: 16px; }
+  .botoesEdicao button { margin: 0; width: auto; padding: 10px 16px; font-size: 14px; }
 </style>
 </head>
 <body>
 <div id="topo">
 <a id="voltar" href="index.html">←</a>
 <span id="titulo">Carregando...</span>
+</div>
+<button id="btnEditarMusica">✏️ Editar música</button>
+<div id="formEditarMusica">
+<label for="editTitulo">Título</label>
+<input type="text" id="editTitulo">
+<label for="editConteudo">Cifra / letra</label>
+<textarea id="editConteudo"></textarea>
+<div class="botoesEdicao">
+<button id="btnSalvarMusica">Salvar</button>
+<button id="btnCancelarEdicaoMusica" class="secundario">Cancelar</button>
+</div>
 </div>
 <div id="conteudo"></div>
 
@@ -72,24 +131,70 @@
 <script>
 const params = new URLSearchParams(window.location.search);
 const id = params.get('id');
+let musicaAtual = null;
+let ehAdmin = false;
 
 async function carregar() {
 if (!id) {
 document.getElementById('titulo').textContent = 'Música não especificada';
 return;
 }
-const { data, error } = await sbClient.from('musicas').select('titulo, conteudo').eq('id', id).single();
+const { data, error } = await sbClient.from('musicas').select('id, titulo, conteudo').eq('id', id).single();
 if (error || !data) {
 document.getElementById('titulo').textContent = 'Erro ao carregar música';
 return;
 }
+musicaAtual = data;
 document.getElementById('titulo').textContent = data.titulo;
 document.getElementById('conteudo').textContent = data.conteudo;
 }
 
+document.getElementById('btnEditarMusica').addEventListener('click', () => {
+if (!musicaAtual) return;
+document.getElementById('editTitulo').value = musicaAtual.titulo;
+document.getElementById('editConteudo').value = musicaAtual.conteudo;
+document.getElementById('conteudo').style.display = 'none';
+document.getElementById('formEditarMusica').style.display = 'block';
+});
+
+document.getElementById('btnCancelarEdicaoMusica').addEventListener('click', () => {
+document.getElementById('formEditarMusica').style.display = 'none';
+document.getElementById('conteudo').style.display = 'block';
+});
+
+document.getElementById('btnSalvarMusica').addEventListener('click', async () => {
+const novoTitulo = document.getElementById('editTitulo').value.trim();
+const novoConteudo = document.getElementById('editConteudo').value;
+if (!novoTitulo) {
+alert('Preenche o título.');
+return;
+}
+
+const { error } = await sbClient.from('musicas').update({ titulo: novoTitulo, conteudo: novoConteudo }).eq('id', id);
+if (error) {
+alert('Erro ao salvar: ' + error.message);
+console.error(error);
+return;
+}
+
+musicaAtual.titulo = novoTitulo;
+musicaAtual.conteudo = novoConteudo;
+document.getElementById('titulo').textContent = novoTitulo;
+document.getElementById('conteudo').textContent = novoConteudo;
+document.getElementById('formEditarMusica').style.display = 'none';
+document.getElementById('conteudo').style.display = 'block';
+});
+
 async function iniciar() {
 const sessao = await protegerPagina();
 if (!sessao) return;
+
+const perfil = await obterPerfil();
+ehAdmin = !!(perfil && perfil.papel === 'administrador');
+if (ehAdmin) {
+document.getElementById('btnEditarMusica').style.display = 'inline-block';
+}
+
 iniciarSeletorTema(document.body);
 carregar();
 }
