@@ -52,6 +52,7 @@ button.secundario { background: #16213A; color: #FDF8F1; border: 1px solid #2A3A
 <script src="auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
 <script>
+let grupoIdAtual = null;
 let notasCarregadas = [];
 let categoriasDisponiveis = [];
 let categoriasAtivas = new Set();
@@ -174,7 +175,8 @@ titulosEditados[Number(campo.getAttribute('data-indice'))] = campo.value.trim();
 
 const candidatas = [...selecionados].map(indice => ({
 titulo: titulosEditados[indice] !== undefined ? titulosEditados[indice] : notasCarregadas[indice].titulo,
-conteudo: notasCarregadas[indice].conteudo
+conteudo: notasCarregadas[indice].conteudo,
+grupo_id: grupoIdAtual
 }));
 
 document.getElementById('status').textContent = 'Verificando músicas já existentes...';
@@ -228,13 +230,13 @@ const sessao = await protegerPagina();
 if (!sessao) return;
 
 const perfil = await obterPerfil();
-const ehAdmin = !!(perfil && perfil.papel === 'administrador');
 
-if (!ehAdmin) {
+if (!perfil || !perfil.podeEditarConteudo) {
 window.location.href = 'index.html';
 return;
 }
 
+grupoIdAtual = perfil.grupoId;
 document.getElementById('conteudo').style.display = 'block';
 }
 
