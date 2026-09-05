@@ -2,15 +2,30 @@
 
 * { box-sizing: border-box; }
 
+html {
+  background: #05070F;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', Arial, sans-serif;
-  background: #0F172A;
+  background: #05070F;
   color: #E5E7EB;
   padding: 15px;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
+  position: relative;
+}
+
+#fundoAnimado {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  display: block;
 }
 
 h1, h2, h3 {
@@ -32,13 +47,14 @@ input[type="date"],
 input[type="file"] {
   width: 100%;
   padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #2A3A5C;
-  background: #16213A;
+  border-radius: 12px;
+  border: 1px solid #263252;
+  background: rgba(19, 27, 48, 0.88);
   color: #FDF8F1;
   font-family: 'Inter', Arial, sans-serif;
   font-size: 15px;
   box-sizing: border-box;
+  backdrop-filter: blur(6px);
 }
 
 input:focus {
@@ -49,37 +65,52 @@ input:focus {
 select {
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid #2A3A5C;
-  background: #16213A;
+  border: 1px solid #263252;
+  background: #131B30;
   color: #FDF8F1;
   font-family: 'Inter', Arial, sans-serif;
   font-size: 14px;
 }
 
 button {
-  padding: 12px 16px;
+  padding: 13px 22px;
   border: none;
-  border-radius: 10px;
-  background: #F97316;
-  color: #0F172A;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #FDBA74 0%, #F97316 55%, #EA580C 100%);
+  color: #1C0F00;
   font-family: 'Inter', Arial, sans-serif;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.15s;
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 
-button:hover { opacity: 0.9; }
-button:disabled { background: #4B5563; color: #ccc; cursor: not-allowed; }
-button.secundario { background: #16213A; color: #FDF8F1; border: 1px solid #2A3A5C; }
-button.perigo { background: #ef4444; color: #fff; }
+button:hover { filter: brightness(1.07); box-shadow: 0 8px 22px rgba(249, 115, 22, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.32); }
+button:active { transform: scale(0.96); }
+button:disabled { background: #384056; color: #8B93A7; box-shadow: none; cursor: not-allowed; }
+
+button.secundario {
+  background: rgba(255, 255, 255, 0.06);
+  color: #FDF8F1;
+  border: 1px solid #33426b;
+  box-shadow: none;
+}
+button.secundario:hover { background: rgba(255, 255, 255, 0.12); filter: none; }
+
+button.perigo {
+  background: linear-gradient(135deg, #FCA5A5 0%, #EF4444 55%, #DC2626 100%);
+  color: #2A0A0A;
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
 
 .card {
-  background: #16213A;
-  border: 1px solid #2A3A5C;
-  border-radius: 12px;
+  background: rgba(19, 27, 48, 0.82);
+  border: 1px solid #263252;
+  border-radius: 14px;
   padding: 14px;
   margin-bottom: 10px;
+  backdrop-filter: blur(6px);
 }
 
 .destaque { color: #F97316; }
@@ -87,4 +118,4 @@ button.perigo { background: #ef4444; color: #fff; }
 ::placeholder { color: #64748B; }
 
 ::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-thumb { background: #2A3A5C; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #263252; border-radius: 4px; }
