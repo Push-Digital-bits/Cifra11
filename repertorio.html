@@ -13,7 +13,43 @@ a.voltar { display: inline-block; margin-bottom: 14px; font-weight: 600; font-si
 #nomeRepertorio { margin-bottom: 4px; }
 #saudacao { color: #F97316; font-weight: 700; font-size: 14px; }
 #infoData { color: #94A3B8; font-size: 13px; }
-#btnEditar { margin: 14px 0; width: auto; padding: 10px 16px; font-size: 14px; }
+.botoesTopo { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+.botoesTopo button { margin: 0; width: auto; padding: 10px 16px; font-size: 14px; }
+
+#painelReferencias {
+display: none;
+background: #16213A;
+border: 1px solid #2A3A5C;
+padding: 16px;
+border-radius: 12px;
+margin: 0 0 22px;
+}
+#listaReferencias { margin-top: 4px; }
+.linhaReferencia {
+display: flex;
+align-items: center;
+gap: 10px;
+padding: 10px 12px;
+background: #0F172A;
+border: 1px solid #263252;
+border-radius: 10px;
+margin-bottom: 8px;
+}
+.linhaReferencia a { flex: 1; color: #38BDF8; font-size: 14px; word-break: break-all; }
+.linhaReferencia button {
+width: auto;
+padding: 6px 10px;
+font-size: 13px;
+margin: 0;
+background: #0F172A;
+border: 1px solid #2A3A5C;
+color: #E5E7EB;
+box-shadow: none;
+}
+#areaAdicionarReferencia { margin-top: 14px; padding-top: 14px; border-top: 1px solid #1E293B; display: flex; gap: 8px; }
+#areaAdicionarReferencia input { margin: 0; }
+#areaAdicionarReferencia button { width: auto; margin: 0; white-space: nowrap; }
+#semReferencias { color: #64748B; font-size: 14px; margin: 0; }
 
 #editarCabecalho {
 display: none;
@@ -149,7 +185,19 @@ color: var(--tema-texto);
 <div id="infoData"></div>
 </div>
 
+<div class="botoesTopo">
 <button id="btnEditar" style="display:none;">Editar repertório</button>
+<button id="btnReferencias" class="secundario">🔗 Referências</button>
+</div>
+
+<div id="painelReferencias">
+<h3>Referências (YouTube)</h3>
+<div id="listaReferencias"></div>
+<div id="areaAdicionarReferencia" style="display:none;">
+<input type="text" id="novaReferencia" placeholder="Cole o link do YouTube...">
+<button id="btnAdicionarReferencia" class="secundario">+ Adicionar link</button>
+</div>
+</div>
 
 <div id="editarCabecalho">
 <label for="editNome">Nome do repertório</label>
@@ -288,6 +336,75 @@ todasMusicas = data || [];
 
 renderizarLista();
 });
+
+document.getElementById('btnReferencias').addEventListener('click', () => {
+const painel = document.getElementById('painelReferencias');
+const aberto = painel.style.display === 'block';
+painel.style.display = aberto ? 'none' : 'block';
+if (!aberto) renderizarReferencias();
+});
+
+function renderizarReferencias() {
+const lista = (repertorioAtual && repertorioAtual.referencias) || [];
+const container = document.getElementById('listaReferencias');
+
+if (lista.length === 0) {
+container.innerHTML = '<p id="semReferencias">Nenhuma referência adicionada ainda.</p>';
+} else {
+container.innerHTML = lista.map((link, indice) => `
+<div class="linhaReferencia">
+<a href="${link}" target="_blank" rel="noopener">▶️ ${link}</a>
+${ehAdmin ? `<button onclick="removerReferencia(${indice})">✕</button>` : ''}
+</div>
+`).join('');
+}
+
+document.getElementById('areaAdicionarReferencia').style.display = ehAdmin ? 'flex' : 'none';
+}
+
+async function salvarReferencias(novaLista) {
+const { error } = await sbClient
+.from('repertorios')
+.update({ referencias: novaLista })
+.eq('id', repertorioId);
+
+if (error) {
+alert('Erro ao salvar referência: ' + error.message);
+console.error(error);
+return false;
+}
+
+repertorioAtual.referencias = novaLista;
+return true;
+}
+
+document.getElementById('btnAdicionarReferencia').addEventListener('click', async () => {
+const campo = document.getElementById('novaReferencia');
+const link = campo.value.trim();
+
+if (!link) return;
+if (!link.includes('youtube.com') && !link.includes('youtu.be')) {
+alert('Cole um link do YouTube válido.');
+return;
+}
+
+const listaAtual = (repertorioAtual.referencias || []).slice();
+listaAtual.push(link);
+
+const ok = await salvarReferencias(listaAtual);
+if (ok) {
+campo.value = '';
+renderizarReferencias();
+}
+});
+
+async function removerReferencia(indice) {
+const listaAtual = (repertorioAtual.referencias || []).slice();
+listaAtual.splice(indice, 1);
+
+const ok = await salvarReferencias(listaAtual);
+if (ok) renderizarReferencias();
+}
 
 document.getElementById('btnSalvarCabecalho').addEventListener('click', async () => {
 const novoNome = document.getElementById('editNome').value.trim();
