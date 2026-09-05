@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adicionar Música - G11 Cifras</title>
+<link rel="stylesheet" href="estilo.css">
+<script src="fundo.js" defer></script>
+<style>
+body { max-width: 640px; }
+a { display: inline-block; margin-bottom: 16px; font-weight: 600; font-size: 14px; }
+label { display: block; margin-top: 16px; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; }
+label:first-of-type { margin-top: 0; }
+textarea {
+width: 100%;
+padding: 12px;
+border-radius: 12px;
+border: 1px solid #263252;
+background: rgba(19, 27, 48, 0.88);
+color: #FDF8F1;
+font-family: 'Courier New', monospace;
+font-size: 15px;
+line-height: 1.5;
+box-sizing: border-box;
+backdrop-filter: blur(6px);
+min-height: 320px;
+resize: vertical;
+}
+textarea:focus { outline: none; border-color: #F97316; }
+button { margin-top: 24px; width: 100%; }
+#status { margin-top: 12px; color: #94A3B8; font-size: 14px; }
+</style>
+</head>
+<body>
+<a href="index.html">← Voltar</a>
+<h1>Adicionar nova música</h1>
+
+<div id="conteudo" style="display:none;">
+<label for="titulo">Título da música</label>
+<input type="text" id="titulo" placeholder="Ex: Ousado Amor">
+
+<label for="conteudoMusica">Cifra / letra</label>
+<textarea id="conteudoMusica" placeholder="Cole aqui a cifra ou letra da música..."></textarea>
+
+<button id="btnSalvar">Salvar música</button>
+<div id="status"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
+<script src="auth.js"></script>
+<script>
+document.getElementById('btnSalvar').addEventListener('click', async () => {
+const titulo = document.getElementById('titulo').value.trim();
+const conteudo = document.getElementById('conteudoMusica').value;
+
+if (!titulo || !conteudo.trim()) {
+alert('Preenche o título e a cifra/letra da música.');
+return;
+}
+
+document.getElementById('status').textContent = 'Salvando...';
+
+const { data: musica, error } = await sbClient
+.from('musicas')
+.insert({ titulo: titulo, conteudo: conteudo })
+.select()
+.single();
+
+if (error) {
+document.getElementById('status').textContent = 'Erro: ' + error.message;
+console.error(error);
+return;
+}
+
+document.getElementById('status').textContent = 'Música salva com sucesso!';
+document.getElementById('titulo').value = '';
+document.getElementById('conteudoMusica').value = '';
+});
+
+async function iniciar() {
+const sessao = await protegerPagina();
+if (!sessao) return;
+
+const perfil = await obterPerfil();
+const ehAdmin = !!(perfil && perfil.papel === 'administrador');
+
+if (!ehAdmin) {
+window.location.href = 'index.html';
+return;
+}
+
+document.getElementById('conteudo').style.display = 'block';
+}
+
+iniciar();
+</script>
+</body>
+</html>
