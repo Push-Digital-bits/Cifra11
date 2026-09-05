@@ -79,22 +79,12 @@
     margin-top: 3px;
     white-space: nowrap;
   }
-  #controleTom {
-    display: none;
-    align-items: center;
-    gap: 6px;
-  }
-  #rotuloTom {
-    color: #FFFFFF;
-    font-weight: 700;
-    font-size: 13px;
-  }
   .botaoTom {
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
     padding: 0;
     border-radius: 50%;
-    font-size: 15px;
+    font-size: 17px;
     color: var(--tema-texto);
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid var(--tema-borda);
@@ -103,20 +93,58 @@
     align-items: center;
     justify-content: center;
     margin: 0;
+    cursor: pointer;
   }
   .bolinhaTom {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: #FACC15;
     color: #1C1300;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 15px;
     flex-shrink: 0;
+    border: none;
+    margin: 0;
+    padding: 0;
   }
+  #btnAbrirPainelTom { cursor: pointer; }
+  .linhaTomAtual {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .dicaTom {
+    font-size: 12px;
+    color: #94A3B8;
+    margin: 0 0 10px;
+  }
+  #cifraTomTexto {
+    width: 100%;
+    min-height: 220px;
+    max-height: 340px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #263252;
+    background: rgba(0,0,0,0.3);
+    color: #FFFFFF;
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    line-height: 1.5;
+    white-space: pre;
+    overflow: auto;
+    box-sizing: border-box;
+    resize: vertical;
+  }
+  #cifraTomTexto:focus { outline: none; border-color: #FACC15; }
+  .linhaBotoesTom { display: flex; justify-content: center; gap: 18px; margin: 14px 0; }
   #btnEditarMusica, #btnFerramentas {
     display: none;
     width: 40px;
@@ -320,12 +348,6 @@
 <button type="button" id="btnAbrirEditarTema">🎨 Editar tema</button>
 </div>
 </div>
-<div id="controleTom">
-<span id="rotuloTom">Tom</span>
-<button type="button" id="btnTomMenos" class="botaoTom" aria-label="Diminuir tom">−</button>
-<span id="valorTom" class="bolinhaTom">—</span>
-<button type="button" id="btnTomMais" class="botaoTom" aria-label="Aumentar tom">+</button>
-</div>
 <div class="grupoBotaoMenu">
 <button id="btnFerramentas">🔧</button>
 <span class="rotuloMiniBotao" id="rotuloFerramentas" style="display:none;">ferramentas</span>
@@ -334,6 +356,10 @@
 <button type="button" id="btnAbrirAfinador">🎵 Afinador</button>
 <button type="button" id="btnAbrirAcompanhamento">🎬 Acompanhamento</button>
 </div>
+</div>
+<div class="grupoBotaoMenu">
+<button id="btnAbrirPainelTom" class="bolinhaTom" style="display:none;">—</button>
+<span class="rotuloMiniBotao" id="rotuloTom" style="display:none;">tom</span>
 </div>
 </div>
 <div id="painelMetronomo" class="painelFerramenta">
@@ -370,6 +396,20 @@
 </div>
 <div id="videoAcompanhamentoContainer" style="display:none;">
 <div class="wrapperVideo"><iframe id="iframeAcompanhamento" src="" title="Acompanhamento" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>
+</div>
+</div>
+<div id="painelTom" class="painelFerramenta">
+<div class="topoPainelFerramenta"><h3>Trocar tom</h3><button type="button" class="fecharPainelFerramenta">✕</button></div>
+<div class="linhaTomAtual"><span>Tom atual:</span> <span id="valorTomModal" class="bolinhaTom">—</span></div>
+<p class="dicaTom">Selecione com o dedo o trecho de acordes que quer mudar e toque em − ou +. Pode repetir em outros trechos antes de salvar.</p>
+<textarea id="cifraTomTexto" readonly spellcheck="false" wrap="off"></textarea>
+<div class="linhaBotoesTom">
+<button type="button" id="btnTomModalMenos" class="botaoTom" aria-label="Diminuir tom da seleção">−</button>
+<button type="button" id="btnTomModalMais" class="botaoTom" aria-label="Aumentar tom da seleção">+</button>
+</div>
+<div class="botoesEdicao">
+<button type="button" id="btnSalvarTom">Salvar tom</button>
+<button type="button" id="btnCancelarTom" class="secundario">Cancelar</button>
 </div>
 </div>
 <div id="formEditarMusica">
@@ -444,11 +484,6 @@ function transporLinha(linha, semitons) {
 return linha.replace(/\S+/g, (token) => transporToken(token, semitons));
 }
 
-function transporTextoCifra(texto, semitons) {
-if (!semitons) return texto;
-return texto.split('\n').map(linha => linhaEhDeAcordes(linha) ? transporLinha(linha, semitons) : linha).join('\n');
-}
-
 function detectarTomInicial(texto) {
 const linhas = texto.split('\n');
 for (const linha of linhas) {
@@ -460,31 +495,54 @@ if (tokens.length > 0) return tokens[0];
 return null;
 }
 
-let semitonsTransposicao = 0;
-let tomOriginal = null;
-let conteudoOriginalCarregado = '';
+function atualizarBadgeTom() {
+const conteudoAtual = document.getElementById('conteudo').textContent;
+const tom = detectarTomInicial(conteudoAtual);
+document.getElementById('btnAbrirPainelTom').textContent = tom || '—';
+}
 
-function atualizarVisorTom() {
-const visor = document.getElementById('valorTom');
-const controle = document.getElementById('controleTom');
-if (!tomOriginal) {
-controle.style.display = 'none';
+let ultimaSelecaoTom = null;
+
+function abrirPainelTom() {
+fecharTodosPainelFerramenta();
+ultimaSelecaoTom = null;
+const conteudoAtual = document.getElementById('conteudo').textContent;
+document.getElementById('cifraTomTexto').value = conteudoAtual;
+document.getElementById('valorTomModal').textContent = detectarTomInicial(conteudoAtual) || '—';
+document.getElementById('painelTom').classList.add('aberto');
+}
+
+// tocar num botão −/+ tira o foco (e a seleção) da textarea em vários navegadores,
+// então guardamos a última seleção não-vazia que o dedo marcou pra poder aplicar
+// a ferramenta mesmo depois desse "branco" de foco, e pra dar pra tocar +/− várias
+// vezes seguidas no mesmo trecho.
+['select', 'mouseup', 'touchend', 'keyup'].forEach((evento) => {
+document.getElementById('cifraTomTexto').addEventListener(evento, () => {
+const area = document.getElementById('cifraTomTexto');
+if (area.selectionStart !== area.selectionEnd) {
+ultimaSelecaoTom = { inicio: area.selectionStart, fim: area.selectionEnd };
+}
+});
+});
+
+function transporSelecaoModal(semitons) {
+const area = document.getElementById('cifraTomTexto');
+let inicio = area.selectionStart;
+let fim = area.selectionEnd;
+if (inicio === fim && ultimaSelecaoTom) {
+inicio = ultimaSelecaoTom.inicio;
+fim = ultimaSelecaoTom.fim;
+}
+if (inicio === fim) {
+alert('Selecione com o dedo o trecho de acordes que você quer mudar antes de tocar em − ou +.');
 return;
 }
-controle.style.display = 'flex';
-visor.textContent = transporToken(tomOriginal, semitonsTransposicao);
-}
-
-function aplicarTransposicaoNaTela() {
-document.getElementById('conteudo').textContent = transporTextoCifra(conteudoOriginalCarregado, semitonsTransposicao);
-}
-
-function prepararTransposicao(conteudo) {
-conteudoOriginalCarregado = conteudo || '';
-semitonsTransposicao = 0;
-tomOriginal = detectarTomInicial(conteudoOriginalCarregado);
-aplicarTransposicaoNaTela();
-atualizarVisorTom();
+const trecho = area.value.slice(inicio, fim);
+const trechoTransposto = transporLinha(trecho, semitons);
+area.setRangeText(trechoTransposto, inicio, fim, 'select');
+area.focus();
+ultimaSelecaoTom = { inicio, fim: inicio + trechoTransposto.length };
+document.getElementById('valorTomModal').textContent = detectarTomInicial(area.value) || '—';
 }
 
 async function carregar() {
@@ -500,14 +558,16 @@ if (error || !data) throw error || new Error('não encontrada');
 musicaAtual = data;
 salvarCacheOffline('musica_' + id, data);
 document.getElementById('titulo').textContent = data.titulo;
-prepararTransposicao(data.conteudo);
+document.getElementById('conteudo').textContent = data.conteudo;
+atualizarBadgeTom();
 esconderAvisoOffline();
 } catch (e) {
 const cache = lerCacheOffline('musica_' + id);
 if (cache) {
 musicaAtual = cache;
 document.getElementById('titulo').textContent = cache.titulo;
-prepararTransposicao(cache.conteudo);
+document.getElementById('conteudo').textContent = cache.conteudo;
+atualizarBadgeTom();
 mostrarAvisoOffline('🔌 Sem internet — mostrando versão salva');
 } else {
 document.getElementById('titulo').textContent = 'Sem internet e sem versão salva desta música';
@@ -515,24 +575,23 @@ document.getElementById('titulo').textContent = 'Sem internet e sem versão salv
 }
 }
 
-document.getElementById('btnTomMais').addEventListener('click', () => {
-if (!tomOriginal) return;
-semitonsTransposicao++;
-aplicarTransposicaoNaTela();
-atualizarVisorTom();
+document.getElementById('btnAbrirPainelTom').addEventListener('click', (e) => {
+e.stopPropagation();
+abrirPainelTom();
 });
 
-document.getElementById('btnTomMenos').addEventListener('click', () => {
-if (!tomOriginal) return;
-semitonsTransposicao--;
-aplicarTransposicaoNaTela();
-atualizarVisorTom();
+document.getElementById('btnTomModalMenos').addEventListener('click', () => transporSelecaoModal(-1));
+document.getElementById('btnTomModalMais').addEventListener('click', () => transporSelecaoModal(1));
+
+document.getElementById('btnCancelarTom').addEventListener('click', () => {
+fecharTodosPainelFerramenta();
 });
 
-async function salvarNovoTom() {
-const corpoTransposto = transporTextoCifra(conteudoOriginalCarregado, semitonsTransposicao);
-const tomFinal = document.getElementById('valorTom').textContent;
-const conteudoFinal = corpoTransposto + '\n\n' + musicaAtual.titulo + ' — Tom: ' + tomFinal;
+document.getElementById('btnSalvarTom').addEventListener('click', async () => {
+if (!ehAdmin || !musicaAtual) return;
+const novoCorpo = document.getElementById('cifraTomTexto').value;
+const tomFinal = document.getElementById('valorTomModal').textContent;
+const conteudoFinal = novoCorpo + '\n\n' + musicaAtual.titulo + ' — Tom: ' + tomFinal;
 const { error } = await sbClient.from('musicas').update({ conteudo: conteudoFinal }).eq('id', id);
 if (error) {
 alert('Erro ao salvar o novo tom: ' + error.message);
@@ -540,18 +599,9 @@ console.error(error);
 return;
 }
 musicaAtual.conteudo = conteudoFinal;
-}
-
-document.getElementById('voltar').addEventListener('click', (e) => {
-if (ehAdmin && musicaAtual && tomOriginal && semitonsTransposicao !== 0) {
-e.preventDefault();
-const salvar = confirm('Você mudou o tom dessa cifra. Deseja salvar esse tom novo?');
-if (salvar) {
-salvarNovoTom().then(() => { window.location.href = 'index.html'; });
-} else {
-window.location.href = 'index.html';
-}
-}
+document.getElementById('conteudo').textContent = conteudoFinal;
+atualizarBadgeTom();
+fecharTodosPainelFerramenta();
 });
 
 document.getElementById('btnEditarMusica').addEventListener('click', (e) => {
@@ -576,7 +626,7 @@ function abrirFormEditarCifra() {
 if (!ehAdmin || !musicaAtual) return;
 fecharTodosPainelFerramenta();
 document.getElementById('editTitulo').value = musicaAtual.titulo;
-document.getElementById('editConteudo').value = document.getElementById('conteudo').textContent;
+document.getElementById('editConteudo').value = musicaAtual.conteudo;
 document.getElementById('editReferencia').value = musicaAtual.referencia || '';
 document.getElementById('conteudo').style.display = 'none';
 document.getElementById('formEditarMusica').style.display = 'block';
@@ -631,7 +681,8 @@ musicaAtual.titulo = novoTitulo;
 musicaAtual.conteudo = novoConteudo;
 musicaAtual.referencia = novaReferencia || null;
 document.getElementById('titulo').textContent = novoTitulo;
-prepararTransposicao(novoConteudo);
+document.getElementById('conteudo').textContent = novoConteudo;
+atualizarBadgeTom();
 document.getElementById('formEditarMusica').style.display = 'none';
 document.getElementById('conteudo').style.display = 'block';
 });
@@ -923,9 +974,12 @@ const perfil = await obterPerfil();
 ehAdmin = !!(perfil && perfil.papel === 'administrador');
 document.getElementById('btnEditarMusica').style.display = 'flex';
 document.getElementById('btnFerramentas').style.display = 'flex';
+document.getElementById('btnAbrirPainelTom').style.display = 'flex';
 document.getElementById('rotuloEditar').style.display = 'block';
 document.getElementById('rotuloFerramentas').style.display = 'block';
+document.getElementById('rotuloTom').style.display = 'block';
 document.getElementById('btnAbrirEditarCifra').disabled = !ehAdmin;
+document.getElementById('btnSalvarTom').disabled = !ehAdmin;
 
 iniciarSeletorTema(document.body, { visivelDeInicio: false });
 carregar();
