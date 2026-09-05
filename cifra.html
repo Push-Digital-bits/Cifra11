@@ -1,51 +1,88 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cifra</title>
-  <style>
-    body { font-family: sans-serif; margin: 0; padding: 15px; }
-    #topo { display: flex; align-items: center; margin-bottom: 10px; }
-    #voltar { font-size: 28px; text-decoration: none; color: #222; margin-right: 12px; }
-    #titulo { font-size: 20px; font-weight: bold; }
-    #conteudo {
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: 'Courier New', monospace;
-      font-size: 16px;
-      line-height: 1.4;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cifra - G11 Cifras</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+  body { max-width: 700px; padding-bottom: 40px; }
+  #topo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #1E293B;
+  }
+  #voltar {
+    font-size: 20px;
+    color: #E5E7EB;
+    background: #16213A;
+    border: 1px solid #2A3A5C;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  #titulo {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FDF8F1;
+  }
+  #conteudo {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    line-height: 1.55;
+    background: #16213A;
+    border: 1px solid #2A3A5C;
+    border-radius: 12px;
+    padding: 18px 16px;
+    color: #E5E7EB;
+    min-height: 40px;
+  }
+</style>
 </head>
 <body>
-  <div id="topo">
-    <a id="voltar" href="index.html">←</a>
-    <span id="titulo">Carregando...</span>
-  </div>
-  <div id="conteudo"></div>
+<div id="topo">
+<a id="voltar" href="index.html">←</a>
+<span id="titulo">Carregando...</span>
+</div>
+<div id="conteudo"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabaseClient.js"></script>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
+<script src="auth.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const id = params.get('id');
 
-    async function carregar() {
-      if (!id) {
-        document.getElementById('titulo').textContent = 'Música não especificada';
-        return;
-      }
-      const { data, error } = await sbClient.from('musicas').select('titulo, conteudo').eq('id', id).single();
-      if (error || !data) {
-        document.getElementById('titulo').textContent = 'Erro ao carregar música';
-        return;
-      }
-      document.getElementById('titulo').textContent = data.titulo;
-      document.getElementById('conteudo').textContent = data.conteudo;
-    }
+async function carregar() {
+if (!id) {
+document.getElementById('titulo').textContent = 'Música não especificada';
+return;
+}
+const { data, error } = await sbClient.from('musicas').select('titulo, conteudo').eq('id', id).single();
+if (error || !data) {
+document.getElementById('titulo').textContent = 'Erro ao carregar música';
+return;
+}
+document.getElementById('titulo').textContent = data.titulo;
+document.getElementById('conteudo').textContent = data.conteudo;
+}
 
-    carregar();
-  </script>
+async function iniciar() {
+const sessao = await protegerPagina();
+if (!sessao) return;
+carregar();
+}
+
+iniciar();
+</script>
 </body>
 </html>
