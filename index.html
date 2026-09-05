@@ -67,6 +67,7 @@
 
   <div class="linksAcao">
     <a id="linkNovoRepertorio" href="novo-repertorio.html" style="display:none;">+ Criar novo repertório</a>
+    <a id="linkImportar" href="importar.html" style="display:none;">📥 Importar músicas (.db)</a>
     <a id="linkAdmin" href="admin.html" style="display:none;">⚙️ Gerenciar usuários</a>
   </div>
 
@@ -222,6 +223,7 @@
 
       if (ehAdmin) {
         document.getElementById('linkNovoRepertorio').style.display = 'inline-block';
+        document.getElementById('linkImportar').style.display = 'inline-block';
         document.getElementById('linkAdmin').style.display = 'inline-block';
       }
 
