@@ -126,7 +126,8 @@
     color: #94A3B8;
     margin: 0 0 10px;
   }
-  #cifraTomTexto {
+  #cifraTomWrap {
+    position: relative;
     width: 100%;
     min-height: 220px;
     max-height: 340px;
@@ -134,16 +135,40 @@
     border-radius: 12px;
     border: 1px solid #263252;
     background: rgba(0,0,0,0.3);
+    overflow: auto;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+  }
+  #cifraTomTexto {
+    margin: 0;
     color: #FFFFFF;
     font-family: 'Courier New', monospace;
     font-size: 15px;
     line-height: 1.5;
     white-space: pre;
-    overflow: auto;
-    box-sizing: border-box;
-    resize: vertical;
+    -webkit-user-select: none;
+    user-select: none;
   }
-  #cifraTomTexto:focus { outline: none; border-color: #FACC15; }
+  #quadradoSelecaoTom {
+    position: absolute;
+    border: 2px solid #FACC15;
+    background: rgba(250, 204, 21, 0.22);
+    border-radius: 4px;
+    pointer-events: none;
+  }
+  #alcaSelecaoTom {
+    position: absolute;
+    right: -15px;
+    bottom: -15px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #FACC15;
+    border: 2px solid #1C1300;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    touch-action: none;
+    pointer-events: auto;
+  }
   .linhaBotoesTom { display: flex; justify-content: center; gap: 18px; margin: 14px 0; }
   #btnEditarMusica, #btnFerramentas {
     display: none;
@@ -401,8 +426,11 @@
 <div id="painelTom" class="painelFerramenta">
 <div class="topoPainelFerramenta"><h3>Trocar tom</h3><button type="button" class="fecharPainelFerramenta">✕</button></div>
 <div class="linhaTomAtual"><span>Tom atual:</span> <span id="valorTomModal" class="bolinhaTom">—</span></div>
-<p class="dicaTom">Selecione com o dedo o trecho de acordes que quer mudar e toque em − ou +. Pode repetir em outros trechos antes de salvar.</p>
-<textarea id="cifraTomTexto" readonly spellcheck="false" wrap="off"></textarea>
+<p class="dicaTom">Toque na cifra pra marcar o trecho de acordes e arraste a bolinha amarela pra abrir o quadrado até cobrir o que você quer mudar. Depois toque em − ou +. Pode repetir em outros trechos antes de salvar.</p>
+<div id="cifraTomWrap">
+<pre id="cifraTomTexto"></pre>
+<div id="quadradoSelecaoTom" hidden><div id="alcaSelecaoTom"></div></div>
+</div>
 <div class="linhaBotoesTom">
 <button type="button" id="btnTomModalMenos" class="botaoTom" aria-label="Diminuir tom da seleção">−</button>
 <button type="button" id="btnTomModalMais" class="botaoTom" aria-label="Aumentar tom da seleção">+</button>
@@ -501,48 +529,165 @@ const tom = detectarTomInicial(conteudoAtual);
 document.getElementById('btnAbrirPainelTom').textContent = tom || '—';
 }
 
+// ---------- Seleção por quadrado (arrastar pra marcar o trecho a transpor) ----------
+// Em vez de depender da seleção nativa de texto no touch (que no celular costuma
+// "pular"/rolar a tela no meio do arrasto e é difícil de acertar), a gente desenha
+// um quadrado por cima da cifra: toca uma vez pra marcar o início, e arrasta a
+// bolinha amarela (a "alça") pra abrir o quadrado até cobrir o trecho de acordes.
+// Só o que der match de acorde de verdade é transposto — então mesmo pegando um
+// pedaço de letra junto sem querer, não tem risco de estragar a letra.
+
+let valorAtualTom = '';
 let ultimaSelecaoTom = null;
+let ancoraOffsetTom = null;
+let arrastandoAlcaTom = false;
 
 function abrirPainelTom() {
 fecharTodosPainelFerramenta();
 ultimaSelecaoTom = null;
+ancoraOffsetTom = null;
 const conteudoAtual = document.getElementById('conteudo').textContent;
-document.getElementById('cifraTomTexto').value = conteudoAtual;
+valorAtualTom = conteudoAtual;
+document.getElementById('cifraTomTexto').textContent = valorAtualTom;
+esconderQuadradoTom();
 document.getElementById('valorTomModal').textContent = detectarTomInicial(conteudoAtual) || '—';
 document.getElementById('painelTom').classList.add('aberto');
 }
 
-// tocar num botão −/+ tira o foco (e a seleção) da textarea em vários navegadores,
-// então guardamos a última seleção não-vazia que o dedo marcou pra poder aplicar
-// a ferramenta mesmo depois desse "branco" de foco, e pra dar pra tocar +/− várias
-// vezes seguidas no mesmo trecho.
-['select', 'mouseup', 'touchend', 'keyup'].forEach((evento) => {
-document.getElementById('cifraTomTexto').addEventListener(evento, () => {
-const area = document.getElementById('cifraTomTexto');
-if (area.selectionStart !== area.selectionEnd) {
-ultimaSelecaoTom = { inicio: area.selectionStart, fim: area.selectionEnd };
+function obterNoTextoTom() {
+const pre = document.getElementById('cifraTomTexto');
+return pre.firstChild && pre.firstChild.nodeType === Node.TEXT_NODE ? pre.firstChild : null;
 }
-});
+
+function caretOffsetNoPontoTom(clientX, clientY) {
+const noTexto = obterNoTextoTom();
+if (!noTexto) return 0;
+let range = null;
+if (document.caretRangeFromPoint) {
+range = document.caretRangeFromPoint(clientX, clientY);
+} else if (document.caretPositionFromPoint) {
+const pos = document.caretPositionFromPoint(clientX, clientY);
+if (pos) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); }
+}
+if (range && range.startContainer === noTexto) {
+return range.startOffset;
+}
+const pre = document.getElementById('cifraTomTexto');
+const rect = pre.getBoundingClientRect();
+if (clientY < rect.top) return 0;
+if (clientY > rect.bottom) return noTexto.length;
+return clientX < rect.left + rect.width / 2 ? 0 : noTexto.length;
+}
+
+// Expande início/fim pras bordas do(s) token(s) (trechos sem espaço) que eles tocam,
+// pra não cortar um acorde no meio só porque o quadrado não ficou pixel-perfeito.
+function expandirParaTokensTom(texto, inicio, fim) {
+let ini = Math.max(0, Math.min(inicio, texto.length));
+let f = Math.max(ini, Math.min(fim, texto.length));
+while (ini > 0 && !/\s/.test(texto[ini - 1])) ini--;
+while (ini < f && /\s/.test(texto[ini])) ini++;
+while (f < texto.length && !/\s/.test(texto[f])) f++;
+if (ini > f) ini = f;
+return { inicio: ini, fim: f };
+}
+
+function esconderQuadradoTom() {
+document.getElementById('quadradoSelecaoTom').hidden = true;
+}
+
+function atualizarRetanguloVisualTom(inicio, fim) {
+const noTexto = obterNoTextoTom();
+const quadrado = document.getElementById('quadradoSelecaoTom');
+if (!noTexto || inicio == null || fim == null || inicio === fim) { esconderQuadradoTom(); return; }
+const range = document.createRange();
+range.setStart(noTexto, Math.max(0, Math.min(inicio, noTexto.length)));
+range.setEnd(noTexto, Math.max(0, Math.min(fim, noTexto.length)));
+const rects = range.getClientRects();
+if (!rects.length) { esconderQuadradoTom(); return; }
+let esquerda = Infinity, topo = Infinity, direita = -Infinity, base = -Infinity;
+for (const r of rects) {
+esquerda = Math.min(esquerda, r.left);
+topo = Math.min(topo, r.top);
+direita = Math.max(direita, r.right);
+base = Math.max(base, r.bottom);
+}
+const wrap = document.getElementById('cifraTomWrap');
+const wrapRect = wrap.getBoundingClientRect();
+quadrado.style.left = (esquerda - wrapRect.left + wrap.scrollLeft) + 'px';
+quadrado.style.top = (topo - wrapRect.top + wrap.scrollTop) + 'px';
+quadrado.style.width = Math.max(direita - esquerda, 14) + 'px';
+quadrado.style.height = Math.max(base - topo, 18) + 'px';
+quadrado.hidden = false;
+}
+
+function iniciarQuadradoNoPontoTom(clientX, clientY) {
+const noTexto = obterNoTextoTom();
+if (!noTexto) return;
+const off = caretOffsetNoPontoTom(clientX, clientY);
+const { inicio, fim } = expandirParaTokensTom(valorAtualTom, off, Math.min(off + 1, valorAtualTom.length));
+ancoraOffsetTom = inicio;
+ultimaSelecaoTom = { inicio, fim: Math.max(fim, Math.min(inicio + 1, valorAtualTom.length)) };
+atualizarRetanguloVisualTom(ultimaSelecaoTom.inicio, ultimaSelecaoTom.fim);
+}
+
+let pointerDownInfoTom = null;
+
+document.getElementById('cifraTomWrap').addEventListener('pointerdown', (e) => {
+pointerDownInfoTom = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId };
 });
 
-function transporSelecaoModal(semitons) {
-const area = document.getElementById('cifraTomTexto');
-let inicio = area.selectionStart;
-let fim = area.selectionEnd;
-if (inicio === fim && ultimaSelecaoTom) {
-inicio = ultimaSelecaoTom.inicio;
-fim = ultimaSelecaoTom.fim;
+document.getElementById('cifraTomWrap').addEventListener('pointerup', (e) => {
+if (!pointerDownInfoTom || e.pointerId !== pointerDownInfoTom.id) return;
+const dx = Math.abs(e.clientX - pointerDownInfoTom.x);
+const dy = Math.abs(e.clientY - pointerDownInfoTom.y);
+const dt = Date.now() - pointerDownInfoTom.t;
+pointerDownInfoTom = null;
+if (dx > 10 || dy > 10 || dt > 500) return; // foi rolagem, não toque pra marcar início
+iniciarQuadradoNoPontoTom(e.clientX, e.clientY);
+});
+
+const alcaSelecaoTom = document.getElementById('alcaSelecaoTom');
+
+alcaSelecaoTom.addEventListener('pointerdown', (e) => {
+e.stopPropagation();
+e.preventDefault();
+if (ancoraOffsetTom == null) return;
+arrastandoAlcaTom = true;
+try { alcaSelecaoTom.setPointerCapture(e.pointerId); } catch (err) {}
+});
+
+alcaSelecaoTom.addEventListener('pointermove', (e) => {
+if (!arrastandoAlcaTom || ancoraOffsetTom == null) return;
+e.preventDefault();
+const pontoAtual = caretOffsetNoPontoTom(e.clientX, e.clientY);
+const a = Math.min(ancoraOffsetTom, pontoAtual);
+const b = Math.max(ancoraOffsetTom, pontoAtual);
+const { inicio, fim } = expandirParaTokensTom(valorAtualTom, a, b);
+ultimaSelecaoTom = { inicio, fim };
+atualizarRetanguloVisualTom(inicio, fim);
+});
+
+function pararArrastoAlcaTom(e) {
+arrastandoAlcaTom = false;
+try { alcaSelecaoTom.releasePointerCapture(e.pointerId); } catch (err) {}
 }
-if (inicio === fim) {
-alert('Selecione com o dedo o trecho de acordes que você quer mudar antes de tocar em − ou +.');
+alcaSelecaoTom.addEventListener('pointerup', pararArrastoAlcaTom);
+alcaSelecaoTom.addEventListener('pointercancel', pararArrastoAlcaTom);
+
+function transporSelecaoModal(semitons) {
+if (!ultimaSelecaoTom || ultimaSelecaoTom.inicio === ultimaSelecaoTom.fim) {
+alert('Toque na cifra pra marcar o início e arraste a bolinha amarela até cobrir o trecho de acordes, antes de tocar em − ou +.');
 return;
 }
-const trecho = area.value.slice(inicio, fim);
+const { inicio, fim } = ultimaSelecaoTom;
+const trecho = valorAtualTom.slice(inicio, fim);
 const trechoTransposto = transporLinha(trecho, semitons);
-area.setRangeText(trechoTransposto, inicio, fim, 'select');
-area.focus();
-ultimaSelecaoTom = { inicio, fim: inicio + trechoTransposto.length };
-document.getElementById('valorTomModal').textContent = detectarTomInicial(area.value) || '—';
+valorAtualTom = valorAtualTom.slice(0, inicio) + trechoTransposto + valorAtualTom.slice(fim);
+document.getElementById('cifraTomTexto').textContent = valorAtualTom;
+const novoFim = inicio + trechoTransposto.length;
+ultimaSelecaoTom = { inicio, fim: novoFim };
+atualizarRetanguloVisualTom(inicio, novoFim);
+document.getElementById('valorTomModal').textContent = detectarTomInicial(valorAtualTom) || '—';
 }
 
 async function carregar() {
@@ -589,7 +734,7 @@ fecharTodosPainelFerramenta();
 
 document.getElementById('btnSalvarTom').addEventListener('click', async () => {
 if (!ehAdmin || !musicaAtual) return;
-const novoCorpo = document.getElementById('cifraTomTexto').value;
+const novoCorpo = valorAtualTom;
 const tomFinal = document.getElementById('valorTomModal').textContent;
 const conteudoFinal = novoCorpo + '\n\n' + musicaAtual.titulo + ' — Tom: ' + tomFinal;
 const { error } = await sbClient.from('musicas').update({ conteudo: conteudoFinal }).eq('id', id);
