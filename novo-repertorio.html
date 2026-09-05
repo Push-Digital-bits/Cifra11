@@ -1,77 +1,79 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Novo Repertório</title>
-  <style>
-    body { font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 15px; }
-    label { display: block; margin-top: 15px; font-weight: bold; }
-    input { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; margin-top: 5px; }
-    button { margin-top: 20px; padding: 12px 20px; font-size: 16px; width: 100%; }
-    a { display: inline-block; margin-bottom: 10px; text-decoration: none; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Novo Repertório - G11 Cifras</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+body { max-width: 480px; }
+a { display: inline-block; margin-bottom: 16px; font-weight: 600; font-size: 14px; }
+label { display: block; margin-top: 16px; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; }
+label:first-of-type { margin-top: 0; }
+button { margin-top: 24px; width: 100%; }
+#status { margin-top: 12px; color: #94A3B8; font-size: 14px; }
+</style>
 </head>
 <body>
-  <a href="index.html">← Voltar</a>
-  <h1>Novo Repertório</h1>
+<a href="index.html">← Voltar</a>
+<h1>Novo Repertório</h1>
 
-  <div id="conteudo" style="display:none;">
-    <label for="nome">Nome do repertório</label>
-    <input type="text" id="nome" placeholder="Ex: Culto de domingo">
+<div id="conteudo" style="display:none;">
+<label for="nome">Nome do repertório</label>
+<input type="text" id="nome" placeholder="Ex: Culto de domingo">
 
-    <label for="data">Data</label>
-    <input type="date" id="data">
+<label for="data">Data</label>
+<input type="date" id="data">
 
-    <button id="btnCriar">Criar repertório</button>
-    <div id="status"></div>
-  </div>
+<button id="btnCriar">Criar repertório</button>
+<div id="status"></div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabaseClient.js"></script>
-  <script src="auth.js"></script>
-  <script>
-    document.getElementById('btnCriar').addEventListener('click', async () => {
-      const nome = document.getElementById('nome').value.trim();
-      const data = document.getElementById('data').value;
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
+<script src="auth.js"></script>
+<script>
+document.getElementById('btnCriar').addEventListener('click', async () => {
+const nome = document.getElementById('nome').value.trim();
+const data = document.getElementById('data').value;
 
-      if (!nome || !data) {
-        alert('Preenche o nome e a data.');
-        return;
-      }
+if (!nome || !data) {
+alert('Preenche o nome e a data.');
+return;
+}
 
-      document.getElementById('status').textContent = 'Criando...';
+document.getElementById('status').textContent = 'Criando...';
 
-      const { data: repertorio, error } = await sbClient
-        .from('repertorios')
-        .insert({ nome: nome, data_evento: data })
-        .select()
-        .single();
+const { data: repertorio, error } = await sbClient
+.from('repertorios')
+.insert({ nome: nome, data_evento: data })
+.select()
+.single();
 
-      if (error) {
-        document.getElementById('status').textContent = 'Erro: ' + error.message;
-        return;
-      }
+if (error) {
+document.getElementById('status').textContent = 'Erro: ' + error.message;
+return;
+}
 
-      window.location.href = `repertorio.html?id=${repertorio.id}`;
-    });
+window.location.href = `repertorio.html?id=${repertorio.id}`;
+});
 
-    async function iniciar() {
-      const sessao = await protegerPagina();
-      if (!sessao) return;
+async function iniciar() {
+const sessao = await protegerPagina();
+if (!sessao) return;
 
-      const perfil = await obterPerfil();
-      const ehAdmin = !!(perfil && perfil.papel === 'administrador');
+const perfil = await obterPerfil();
+const ehAdmin = !!(perfil && perfil.papel === 'administrador');
 
-      if (!ehAdmin) {
-        window.location.href = 'index.html';
-        return;
-      }
+if (!ehAdmin) {
+window.location.href = 'index.html';
+return;
+}
 
-      document.getElementById('conteudo').style.display = 'block';
-    }
+document.getElementById('conteudo').style.display = 'block';
+}
 
-    iniciar();
-  </script>
+iniciar();
+</script>
 </body>
 </html>
