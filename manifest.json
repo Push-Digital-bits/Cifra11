@@ -1,0 +1,16 @@
+{
+  "name": "G11 Cifras",
+  "short_name": "G11 Cifras",
+  "description": "Cifras e repertórios da banda G11",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#05070F",
+  "theme_color": "#05070F",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "logo.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "logo.png", "sizes": "1254x1254", "type": "image/png" }
+  ]
+}
