@@ -67,6 +67,55 @@
   }
   .grupoBotaoMenu {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .rotuloMiniBotao {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--tema-texto);
+    opacity: 0.65;
+    margin-top: 3px;
+    white-space: nowrap;
+  }
+  #controleTom {
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+  #rotuloTom {
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .botaoTom {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 15px;
+    color: var(--tema-texto);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--tema-borda);
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+  }
+  .bolinhaTom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #FACC15;
+    color: #1C1300;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
   }
   #btnEditarMusica, #btnFerramentas {
     display: none;
@@ -85,7 +134,7 @@
   .menuFlutuante {
     display: none;
     position: absolute;
-    top: 46px;
+    top: 58px;
     left: 0;
     z-index: 20;
     background: #16213A;
@@ -264,14 +313,22 @@
 <div id="areaLapis">
 <div class="grupoBotaoMenu">
 <button id="btnEditarMusica">✏️</button>
+<span class="rotuloMiniBotao" id="rotuloEditar" style="display:none;">editar</span>
 <div id="menuLapis" class="menuFlutuante">
 <button type="button" id="btnModoGhost">👻 Modo Ghost</button>
 <button type="button" id="btnAbrirEditarCifra">✏️ Editar cifra</button>
 <button type="button" id="btnAbrirEditarTema">🎨 Editar tema</button>
 </div>
 </div>
+<div id="controleTom">
+<span id="rotuloTom">Tom</span>
+<button type="button" id="btnTomMenos" class="botaoTom" aria-label="Diminuir tom">−</button>
+<span id="valorTom" class="bolinhaTom">—</span>
+<button type="button" id="btnTomMais" class="botaoTom" aria-label="Aumentar tom">+</button>
+</div>
 <div class="grupoBotaoMenu">
 <button id="btnFerramentas">🔧</button>
+<span class="rotuloMiniBotao" id="rotuloFerramentas" style="display:none;">ferramentas</span>
 <div id="menuFerramentas" class="menuFlutuante">
 <button type="button" id="btnAbrirMetronomo">🥁 Metrônomo</button>
 <button type="button" id="btnAbrirAfinador">🎵 Afinador</button>
@@ -340,6 +397,96 @@ const id = params.get('id');
 let musicaAtual = null;
 let ehAdmin = false;
 
+// ---------- Transposição de tom da cifra ----------
+
+const NOTAS_CIFRA = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const EQUIVALENTES_BEMOL = { 'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#' };
+const QUALIDADES_CIFRA = ['maj7','maj9','maj','min7','min','m7b5','m7M','m9','m7','m6','dim7','dim','aug','sus2','sus4','sus','add9','add4','add2','6','7M','9','11','13','7','5','m']
+.sort((a, b) => b.length - a.length);
+const QUALIDADE_ALT = QUALIDADES_CIFRA.join('|');
+const ACORDE_REGEX = new RegExp('^([A-G])(#|b)?((?:' + QUALIDADE_ALT + ')*)(\\(\\d+\\))?(\\/([A-G])(#|b)?)?$');
+
+function normalizarNotaBase(nota) {
+return EQUIVALENTES_BEMOL[nota] || nota;
+}
+
+function transporNota(nota, semitons) {
+const normalizada = normalizarNotaBase(nota);
+const indice = NOTAS_CIFRA.indexOf(normalizada);
+if (indice === -1) return nota;
+const novoIndice = ((indice + semitons) % 12 + 12) % 12;
+return NOTAS_CIFRA[novoIndice];
+}
+
+function pareceAcorde(token) {
+return ACORDE_REGEX.test(token);
+}
+
+function transporToken(token, semitons) {
+const m = token.match(ACORDE_REGEX);
+if (!m) return token;
+const raiz = m[1] + (m[2] || '');
+const qualidade = m[3] || '';
+const extensao = m[4] || '';
+const baixo = m[6] ? (m[6] + (m[7] || '')) : null;
+const novaRaiz = transporNota(raiz, semitons);
+const novoBaixo = baixo ? transporNota(baixo, semitons) : null;
+return novaRaiz + qualidade + extensao + (novoBaixo ? '/' + novoBaixo : '');
+}
+
+function linhaEhDeAcordes(linha) {
+const tokens = linha.trim().split(/\s+/).filter(t => t.length > 0);
+if (tokens.length === 0) return false;
+return tokens.every(t => pareceAcorde(t));
+}
+
+function transporLinha(linha, semitons) {
+return linha.replace(/\S+/g, (token) => transporToken(token, semitons));
+}
+
+function transporTextoCifra(texto, semitons) {
+if (!semitons) return texto;
+return texto.split('\n').map(linha => linhaEhDeAcordes(linha) ? transporLinha(linha, semitons) : linha).join('\n');
+}
+
+function detectarTomInicial(texto) {
+const linhas = texto.split('\n');
+for (const linha of linhas) {
+if (linhaEhDeAcordes(linha)) {
+const tokens = linha.trim().split(/\s+/).filter(t => t.length > 0);
+if (tokens.length > 0) return tokens[0];
+}
+}
+return null;
+}
+
+let semitonsTransposicao = 0;
+let tomOriginal = null;
+let conteudoOriginalCarregado = '';
+
+function atualizarVisorTom() {
+const visor = document.getElementById('valorTom');
+const controle = document.getElementById('controleTom');
+if (!tomOriginal) {
+controle.style.display = 'none';
+return;
+}
+controle.style.display = 'flex';
+visor.textContent = transporToken(tomOriginal, semitonsTransposicao);
+}
+
+function aplicarTransposicaoNaTela() {
+document.getElementById('conteudo').textContent = transporTextoCifra(conteudoOriginalCarregado, semitonsTransposicao);
+}
+
+function prepararTransposicao(conteudo) {
+conteudoOriginalCarregado = conteudo || '';
+semitonsTransposicao = 0;
+tomOriginal = detectarTomInicial(conteudoOriginalCarregado);
+aplicarTransposicaoNaTela();
+atualizarVisorTom();
+}
+
 async function carregar() {
 if (!id) {
 document.getElementById('titulo').textContent = 'Música não especificada';
@@ -353,20 +500,59 @@ if (error || !data) throw error || new Error('não encontrada');
 musicaAtual = data;
 salvarCacheOffline('musica_' + id, data);
 document.getElementById('titulo').textContent = data.titulo;
-document.getElementById('conteudo').textContent = data.conteudo;
+prepararTransposicao(data.conteudo);
 esconderAvisoOffline();
 } catch (e) {
 const cache = lerCacheOffline('musica_' + id);
 if (cache) {
 musicaAtual = cache;
 document.getElementById('titulo').textContent = cache.titulo;
-document.getElementById('conteudo').textContent = cache.conteudo;
+prepararTransposicao(cache.conteudo);
 mostrarAvisoOffline('🔌 Sem internet — mostrando versão salva');
 } else {
 document.getElementById('titulo').textContent = 'Sem internet e sem versão salva desta música';
 }
 }
 }
+
+document.getElementById('btnTomMais').addEventListener('click', () => {
+if (!tomOriginal) return;
+semitonsTransposicao++;
+aplicarTransposicaoNaTela();
+atualizarVisorTom();
+});
+
+document.getElementById('btnTomMenos').addEventListener('click', () => {
+if (!tomOriginal) return;
+semitonsTransposicao--;
+aplicarTransposicaoNaTela();
+atualizarVisorTom();
+});
+
+async function salvarNovoTom() {
+const corpoTransposto = transporTextoCifra(conteudoOriginalCarregado, semitonsTransposicao);
+const tomFinal = document.getElementById('valorTom').textContent;
+const conteudoFinal = corpoTransposto + '\n\n' + musicaAtual.titulo + ' — Tom: ' + tomFinal;
+const { error } = await sbClient.from('musicas').update({ conteudo: conteudoFinal }).eq('id', id);
+if (error) {
+alert('Erro ao salvar o novo tom: ' + error.message);
+console.error(error);
+return;
+}
+musicaAtual.conteudo = conteudoFinal;
+}
+
+document.getElementById('voltar').addEventListener('click', (e) => {
+if (ehAdmin && musicaAtual && tomOriginal && semitonsTransposicao !== 0) {
+e.preventDefault();
+const salvar = confirm('Você mudou o tom dessa cifra. Deseja salvar esse tom novo?');
+if (salvar) {
+salvarNovoTom().then(() => { window.location.href = 'index.html'; });
+} else {
+window.location.href = 'index.html';
+}
+}
+});
 
 document.getElementById('btnEditarMusica').addEventListener('click', (e) => {
 e.stopPropagation();
@@ -390,7 +576,7 @@ function abrirFormEditarCifra() {
 if (!ehAdmin || !musicaAtual) return;
 fecharTodosPainelFerramenta();
 document.getElementById('editTitulo').value = musicaAtual.titulo;
-document.getElementById('editConteudo').value = musicaAtual.conteudo;
+document.getElementById('editConteudo').value = document.getElementById('conteudo').textContent;
 document.getElementById('editReferencia').value = musicaAtual.referencia || '';
 document.getElementById('conteudo').style.display = 'none';
 document.getElementById('formEditarMusica').style.display = 'block';
@@ -445,7 +631,7 @@ musicaAtual.titulo = novoTitulo;
 musicaAtual.conteudo = novoConteudo;
 musicaAtual.referencia = novaReferencia || null;
 document.getElementById('titulo').textContent = novoTitulo;
-document.getElementById('conteudo').textContent = novoConteudo;
+prepararTransposicao(novoConteudo);
 document.getElementById('formEditarMusica').style.display = 'none';
 document.getElementById('conteudo').style.display = 'block';
 });
@@ -737,6 +923,8 @@ const perfil = await obterPerfil();
 ehAdmin = !!(perfil && perfil.papel === 'administrador');
 document.getElementById('btnEditarMusica').style.display = 'flex';
 document.getElementById('btnFerramentas').style.display = 'flex';
+document.getElementById('rotuloEditar').style.display = 'block';
+document.getElementById('rotuloFerramentas').style.display = 'block';
 document.getElementById('btnAbrirEditarCifra').disabled = !ehAdmin;
 
 iniciarSeletorTema(document.body, { visivelDeInicio: false });
