@@ -152,16 +152,16 @@
   #quadradoSelecaoTom {
     position: absolute;
     border: 2px solid #FACC15;
-    background: rgba(250, 204, 21, 0.22);
+    background: rgba(250, 204, 21, 0.20);
     border-radius: 4px;
     pointer-events: none;
   }
-  #alcaSelecaoTom {
+  .alcaCantoTom {
     position: absolute;
-    right: -15px;
-    bottom: -15px;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
+    margin-left: -14px;
+    margin-top: -14px;
     border-radius: 50%;
     background: #FACC15;
     border: 2px solid #1C1300;
@@ -426,10 +426,14 @@
 <div id="painelTom" class="painelFerramenta">
 <div class="topoPainelFerramenta"><h3>Trocar tom</h3><button type="button" class="fecharPainelFerramenta">✕</button></div>
 <div class="linhaTomAtual"><span>Tom atual:</span> <span id="valorTomModal" class="bolinhaTom">—</span></div>
-<p class="dicaTom">Toque na cifra pra marcar o trecho de acordes e arraste a bolinha amarela pra abrir o quadrado até cobrir o que você quer mudar. Depois toque em − ou +. Pode repetir em outros trechos antes de salvar.</p>
+<p class="dicaTom">Toque na cifra pra abrir um quadradinho, depois arraste qualquer um dos 4 cantos amarelos pra esticar até cobrir só o que você quer mudar (pode ser um pedaço de uma coluna, várias linhas, o que precisar). Depois toque em − ou +. Pode repetir em outros trechos antes de salvar.</p>
 <div id="cifraTomWrap">
 <pre id="cifraTomTexto"></pre>
-<div id="quadradoSelecaoTom" hidden><div id="alcaSelecaoTom"></div></div>
+<div id="quadradoSelecaoTom" hidden></div>
+<div id="alcaTLTom" class="alcaCantoTom" hidden></div>
+<div id="alcaTRTom" class="alcaCantoTom" hidden></div>
+<div id="alcaBLTom" class="alcaCantoTom" hidden></div>
+<div id="alcaBRTom" class="alcaCantoTom" hidden></div>
 </div>
 <div class="linhaBotoesTom">
 <button type="button" id="btnTomModalMenos" class="botaoTom" aria-label="Diminuir tom da seleção">−</button>
@@ -538,14 +542,17 @@ document.getElementById('btnAbrirPainelTom').textContent = tom || '—';
 // pedaço de letra junto sem querer, não tem risco de estragar a letra.
 
 let valorAtualTom = '';
-let ultimaSelecaoTom = null;
-let ancoraOffsetTom = null;
-let arrastandoAlcaTom = false;
+// Seleção como um retângulo livre na grade de caracteres monoespaçada:
+// rowTop/rowBottom marcam as linhas (fronteiras, meio-abertas) e colLeft/colRight
+// marcam as colunas (fronteiras, meio-abertas) do quadrado. Cada um dos 4 cantos
+// arrasta duas dessas fronteiras (uma de linha, uma de coluna), então o quadrado
+// pode ser esticado livremente pra qualquer forma/posição, não só seguindo o fluxo do texto.
+let limitesSelecaoTom = null;
+let arrastandoCantoTom = null;
 
 function abrirPainelTom() {
 fecharTodosPainelFerramenta();
-ultimaSelecaoTom = null;
-ancoraOffsetTom = null;
+limitesSelecaoTom = null;
 const conteudoAtual = document.getElementById('conteudo').textContent;
 valorAtualTom = conteudoAtual;
 document.getElementById('cifraTomTexto').textContent = valorAtualTom;
@@ -559,80 +566,98 @@ const pre = document.getElementById('cifraTomTexto');
 return pre.firstChild && pre.firstChild.nodeType === Node.TEXT_NODE ? pre.firstChild : null;
 }
 
-function caretOffsetNoPontoTom(clientX, clientY) {
+// Mede o tamanho de cada célula da grade (largura de um caractere e altura de uma linha)
+// olhando pra posição real dos glifos na tela — assim a grade bate certinho com a fonte usada.
+function medirGradeTom() {
+let charWidth = 9, lineHeight = 22;
 const noTexto = obterNoTextoTom();
-if (!noTexto) return 0;
-let range = null;
-if (document.caretRangeFromPoint) {
-range = document.caretRangeFromPoint(clientX, clientY);
-} else if (document.caretPositionFromPoint) {
-const pos = document.caretPositionFromPoint(clientX, clientY);
-if (pos) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); }
+if (!noTexto) return { charWidth, lineHeight };
+const texto = valorAtualTom;
+const amostra = Math.min(10, texto.length);
+if (amostra > 0) {
+const r = document.createRange();
+r.setStart(noTexto, 0);
+r.setEnd(noTexto, amostra);
+const rect = r.getClientRects()[0];
+if (rect && rect.width > 0) charWidth = rect.width / amostra;
 }
-if (range && range.startContainer === noTexto) {
-return range.startOffset;
+const idxNovaLinha = texto.indexOf('\n');
+if (idxNovaLinha > -1 && idxNovaLinha + 1 < texto.length) {
+const r1 = document.createRange();
+r1.setStart(noTexto, 0); r1.setEnd(noTexto, 1);
+const rect1 = r1.getClientRects()[0];
+const r2 = document.createRange();
+r2.setStart(noTexto, idxNovaLinha + 1); r2.setEnd(noTexto, idxNovaLinha + 2);
+const rect2 = r2.getClientRects()[0];
+if (rect1 && rect2 && rect2.top > rect1.top) lineHeight = rect2.top - rect1.top;
 }
-const pre = document.getElementById('cifraTomTexto');
-const rect = pre.getBoundingClientRect();
-if (clientY < rect.top) return 0;
-if (clientY > rect.bottom) return noTexto.length;
-return clientX < rect.left + rect.width / 2 ? 0 : noTexto.length;
+return { charWidth, lineHeight };
 }
 
-// Expande início/fim pras bordas do(s) token(s) (trechos sem espaço) que eles tocam,
-// pra não cortar um acorde no meio só porque o quadrado não ficou pixel-perfeito.
-function expandirParaTokensTom(texto, inicio, fim) {
-let ini = Math.max(0, Math.min(inicio, texto.length));
-let f = Math.max(ini, Math.min(fim, texto.length));
-while (ini > 0 && !/\s/.test(texto[ini - 1])) ini--;
-while (ini < f && /\s/.test(texto[ini])) ini++;
-while (f < texto.length && !/\s/.test(texto[f])) f++;
-if (ini > f) ini = f;
-return { inicio: ini, fim: f };
+// Converte um ponto de tela numa posição de grade (linha/coluna mais próxima)
+function pontoParaGradeTom(clientX, clientY) {
+const pre = document.getElementById('cifraTomTexto');
+const rect = pre.getBoundingClientRect();
+const grade = medirGradeTom();
+const linhas = valorAtualTom.split('\n');
+let linha = Math.round((clientY - rect.top) / grade.lineHeight);
+linha = Math.max(0, Math.min(linha, linhas.length));
+const maiorLinha = Math.max(1, ...linhas.map((l) => l.length));
+let coluna = Math.round((clientX - rect.left) / grade.charWidth);
+coluna = Math.max(0, Math.min(coluna, maiorLinha));
+return { linha, coluna };
+}
+
+function gradeParaPixelTom(linha, coluna) {
+const pre = document.getElementById('cifraTomTexto');
+const wrap = document.getElementById('cifraTomWrap');
+const preRect = pre.getBoundingClientRect();
+const wrapRect = wrap.getBoundingClientRect();
+const grade = medirGradeTom();
+return {
+x: preRect.left - wrapRect.left + wrap.scrollLeft + coluna * grade.charWidth,
+y: preRect.top - wrapRect.top + wrap.scrollTop + linha * grade.lineHeight
+};
 }
 
 function esconderQuadradoTom() {
 document.getElementById('quadradoSelecaoTom').hidden = true;
+['alcaTLTom', 'alcaTRTom', 'alcaBLTom', 'alcaBRTom'].forEach((id) => {
+document.getElementById(id).hidden = true;
+});
 }
 
-function atualizarRetanguloVisualTom(inicio, fim) {
-const noTexto = obterNoTextoTom();
+function posicionarAlcaTom(id, x, y) {
+const el = document.getElementById(id);
+el.style.left = x + 'px';
+el.style.top = y + 'px';
+el.hidden = false;
+}
+
+function atualizarRetanguloVisualTom() {
+if (!limitesSelecaoTom) { esconderQuadradoTom(); return; }
+const rowMin = Math.min(limitesSelecaoTom.rowTop, limitesSelecaoTom.rowBottom);
+const rowMax = Math.max(limitesSelecaoTom.rowTop, limitesSelecaoTom.rowBottom);
+const colMin = Math.min(limitesSelecaoTom.colLeft, limitesSelecaoTom.colRight);
+const colMax = Math.max(limitesSelecaoTom.colLeft, limitesSelecaoTom.colRight);
+const p1 = gradeParaPixelTom(rowMin, colMin);
+const p2 = gradeParaPixelTom(rowMax, colMax);
 const quadrado = document.getElementById('quadradoSelecaoTom');
-if (!noTexto || inicio == null || fim == null || inicio === fim) { esconderQuadradoTom(); return; }
-const range = document.createRange();
-range.setStart(noTexto, Math.max(0, Math.min(inicio, noTexto.length)));
-range.setEnd(noTexto, Math.max(0, Math.min(fim, noTexto.length)));
-const rects = range.getClientRects();
-if (!rects.length) { esconderQuadradoTom(); return; }
-let esquerda = Infinity, topo = Infinity, direita = -Infinity, base = -Infinity;
-for (const r of rects) {
-esquerda = Math.min(esquerda, r.left);
-topo = Math.min(topo, r.top);
-direita = Math.max(direita, r.right);
-base = Math.max(base, r.bottom);
-}
-const wrap = document.getElementById('cifraTomWrap');
-const wrapRect = wrap.getBoundingClientRect();
-quadrado.style.left = (esquerda - wrapRect.left + wrap.scrollLeft) + 'px';
-quadrado.style.top = (topo - wrapRect.top + wrap.scrollTop) + 'px';
-quadrado.style.width = Math.max(direita - esquerda, 14) + 'px';
-quadrado.style.height = Math.max(base - topo, 18) + 'px';
+quadrado.style.left = p1.x + 'px';
+quadrado.style.top = p1.y + 'px';
+quadrado.style.width = Math.max(p2.x - p1.x, 6) + 'px';
+quadrado.style.height = Math.max(p2.y - p1.y, 6) + 'px';
 quadrado.hidden = false;
-}
-
-function iniciarQuadradoNoPontoTom(clientX, clientY) {
-const noTexto = obterNoTextoTom();
-if (!noTexto) return;
-const off = caretOffsetNoPontoTom(clientX, clientY);
-const { inicio, fim } = expandirParaTokensTom(valorAtualTom, off, Math.min(off + 1, valorAtualTom.length));
-ancoraOffsetTom = inicio;
-ultimaSelecaoTom = { inicio, fim: Math.max(fim, Math.min(inicio + 1, valorAtualTom.length)) };
-atualizarRetanguloVisualTom(ultimaSelecaoTom.inicio, ultimaSelecaoTom.fim);
+posicionarAlcaTom('alcaTLTom', p1.x, p1.y);
+posicionarAlcaTom('alcaTRTom', p2.x, p1.y);
+posicionarAlcaTom('alcaBLTom', p1.x, p2.y);
+posicionarAlcaTom('alcaBRTom', p2.x, p2.y);
 }
 
 let pointerDownInfoTom = null;
 
 document.getElementById('cifraTomWrap').addEventListener('pointerdown', (e) => {
+if (e.target.classList.contains('alcaCantoTom')) return;
 pointerDownInfoTom = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId };
 });
 
@@ -643,51 +668,80 @@ const dy = Math.abs(e.clientY - pointerDownInfoTom.y);
 const dt = Date.now() - pointerDownInfoTom.t;
 pointerDownInfoTom = null;
 if (dx > 10 || dy > 10 || dt > 500) return; // foi rolagem, não toque pra marcar início
-iniciarQuadradoNoPontoTom(e.clientX, e.clientY);
+const { linha, coluna } = pontoParaGradeTom(e.clientX, e.clientY);
+limitesSelecaoTom = { rowTop: linha, rowBottom: linha + 1, colLeft: coluna, colRight: coluna + 1 };
+atualizarRetanguloVisualTom();
 });
 
-const alcaSelecaoTom = document.getElementById('alcaSelecaoTom');
-
-alcaSelecaoTom.addEventListener('pointerdown', (e) => {
+// Cada canto controla livremente sua própria fronteira de linha (topo/baixo) e
+// de coluna (esquerda/direita) — assim dá pra esticar o quadrado pra qualquer lado.
+function configurarAlcaCantoTom(id, ehTopo, ehEsquerda) {
+const el = document.getElementById(id);
+el.addEventListener('pointerdown', (e) => {
 e.stopPropagation();
 e.preventDefault();
-if (ancoraOffsetTom == null) return;
-arrastandoAlcaTom = true;
-try { alcaSelecaoTom.setPointerCapture(e.pointerId); } catch (err) {}
+if (!limitesSelecaoTom) return;
+arrastandoCantoTom = id;
+try { el.setPointerCapture(e.pointerId); } catch (err) {}
 });
-
-alcaSelecaoTom.addEventListener('pointermove', (e) => {
-if (!arrastandoAlcaTom || ancoraOffsetTom == null) return;
+el.addEventListener('pointermove', (e) => {
+if (arrastandoCantoTom !== id || !limitesSelecaoTom) return;
 e.preventDefault();
-const pontoAtual = caretOffsetNoPontoTom(e.clientX, e.clientY);
-const a = Math.min(ancoraOffsetTom, pontoAtual);
-const b = Math.max(ancoraOffsetTom, pontoAtual);
-const { inicio, fim } = expandirParaTokensTom(valorAtualTom, a, b);
-ultimaSelecaoTom = { inicio, fim };
-atualizarRetanguloVisualTom(inicio, fim);
+const { linha, coluna } = pontoParaGradeTom(e.clientX, e.clientY);
+if (ehTopo) limitesSelecaoTom.rowTop = linha; else limitesSelecaoTom.rowBottom = linha;
+if (ehEsquerda) limitesSelecaoTom.colLeft = coluna; else limitesSelecaoTom.colRight = coluna;
+atualizarRetanguloVisualTom();
 });
-
-function pararArrastoAlcaTom(e) {
-arrastandoAlcaTom = false;
-try { alcaSelecaoTom.releasePointerCapture(e.pointerId); } catch (err) {}
+function parar(e) {
+if (arrastandoCantoTom !== id) return;
+arrastandoCantoTom = null;
+try { el.releasePointerCapture(e.pointerId); } catch (err) {}
 }
-alcaSelecaoTom.addEventListener('pointerup', pararArrastoAlcaTom);
-alcaSelecaoTom.addEventListener('pointercancel', pararArrastoAlcaTom);
+el.addEventListener('pointerup', parar);
+el.addEventListener('pointercancel', parar);
+}
+configurarAlcaCantoTom('alcaTLTom', true, true);
+configurarAlcaCantoTom('alcaTRTom', true, false);
+configurarAlcaCantoTom('alcaBLTom', false, true);
+configurarAlcaCantoTom('alcaBRTom', false, false);
 
 function transporSelecaoModal(semitons) {
-if (!ultimaSelecaoTom || ultimaSelecaoTom.inicio === ultimaSelecaoTom.fim) {
-alert('Toque na cifra pra marcar o início e arraste a bolinha amarela até cobrir o trecho de acordes, antes de tocar em − ou +.');
+if (!limitesSelecaoTom) {
+alert('Toque na cifra pra abrir o quadradinho e arraste os cantos até cobrir o trecho de acordes, antes de tocar em − ou +.');
 return;
 }
-const { inicio, fim } = ultimaSelecaoTom;
-const trecho = valorAtualTom.slice(inicio, fim);
-const trechoTransposto = transporLinha(trecho, semitons);
-valorAtualTom = valorAtualTom.slice(0, inicio) + trechoTransposto + valorAtualTom.slice(fim);
+const rowMin = Math.min(limitesSelecaoTom.rowTop, limitesSelecaoTom.rowBottom);
+const rowMax = Math.max(limitesSelecaoTom.rowTop, limitesSelecaoTom.rowBottom);
+const colMin = Math.min(limitesSelecaoTom.colLeft, limitesSelecaoTom.colRight);
+const colMax = Math.max(limitesSelecaoTom.colLeft, limitesSelecaoTom.colRight);
+if (rowMax <= rowMin || colMax <= colMin) {
+alert('O quadrado ainda está fechado — arraste os cantos até cobrir o trecho de acordes.');
+return;
+}
+// Só transpõe o acorde inteiro se o meio dele cair dentro do quadrado, pra nunca
+// cortar/estragar um acorde na metade só porque o quadrado não ficou pixel-perfeito.
+const linhas = valorAtualTom.split('\n');
+for (let i = rowMin; i < rowMax && i < linhas.length; i++) {
+const linha = linhas[i];
+let resultado = '';
+let ultimoFim = 0;
+const regexToken = /\S+/g;
+let m;
+while ((m = regexToken.exec(linha)) !== null) {
+const inicioTok = m.index;
+const fimTok = m.index + m[0].length;
+const meioTok = (inicioTok + fimTok) / 2;
+resultado += linha.slice(ultimoFim, inicioTok);
+resultado += (meioTok >= colMin && meioTok < colMax) ? transporToken(m[0], semitons) : m[0];
+ultimoFim = fimTok;
+}
+resultado += linha.slice(ultimoFim);
+linhas[i] = resultado;
+}
+valorAtualTom = linhas.join('\n');
 document.getElementById('cifraTomTexto').textContent = valorAtualTom;
-const novoFim = inicio + trechoTransposto.length;
-ultimaSelecaoTom = { inicio, fim: novoFim };
-atualizarRetanguloVisualTom(inicio, novoFim);
 document.getElementById('valorTomModal').textContent = detectarTomInicial(valorAtualTom) || '—';
+atualizarRetanguloVisualTom();
 }
 
 async function carregar() {
