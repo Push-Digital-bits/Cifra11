@@ -46,8 +46,8 @@
     white-space: pre;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    font-family: 'Courier New', monospace;
-    font-size: 22px;
+    font-family: var(--tema-fonte, 'Courier New', monospace);
+    font-size: var(--tema-tamanho, 22px);
     font-weight: 700;
     line-height: 1.65;
     background: transparent;
@@ -128,6 +128,7 @@
 <script src="supabaseClient.js"></script>
 <script src="auth.js"></script>
 <script src="tema.js"></script>
+<script src="offline.js"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const id = params.get('id');
@@ -139,14 +140,27 @@ if (!id) {
 document.getElementById('titulo').textContent = 'Música não especificada';
 return;
 }
+
+try {
 const { data, error } = await sbClient.from('musicas').select('id, titulo, conteudo').eq('id', id).single();
-if (error || !data) {
-document.getElementById('titulo').textContent = 'Erro ao carregar música';
-return;
-}
+if (error || !data) throw error || new Error('não encontrada');
+
 musicaAtual = data;
+salvarCacheOffline('musica_' + id, data);
 document.getElementById('titulo').textContent = data.titulo;
 document.getElementById('conteudo').textContent = data.conteudo;
+esconderAvisoOffline();
+} catch (e) {
+const cache = lerCacheOffline('musica_' + id);
+if (cache) {
+musicaAtual = cache;
+document.getElementById('titulo').textContent = cache.titulo;
+document.getElementById('conteudo').textContent = cache.conteudo;
+mostrarAvisoOffline('🔌 Sem internet — mostrando versão salva');
+} else {
+document.getElementById('titulo').textContent = 'Sem internet e sem versão salva desta música';
+}
+}
 }
 
 document.getElementById('btnEditarMusica').addEventListener('click', () => {
