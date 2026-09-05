@@ -971,7 +971,7 @@ const sessao = await protegerPagina();
 if (!sessao) return;
 
 const perfil = await obterPerfil();
-ehAdmin = !!(perfil && perfil.papel === 'administrador');
+ehAdmin = !!(perfil && perfil.podeEditarConteudo);
 document.getElementById('btnEditarMusica').style.display = 'flex';
 document.getElementById('btnFerramentas').style.display = 'flex';
 document.getElementById('btnAbrirPainelTom').style.display = 'flex';
