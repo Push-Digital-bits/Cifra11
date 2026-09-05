@@ -61,11 +61,14 @@
     min-height: 40px;
   }
   #areaLapis {
-    position: relative;
-    display: inline-block;
+    display: flex;
+    gap: 10px;
     margin: -6px 0 16px;
   }
-  #btnEditarMusica {
+  .grupoBotaoMenu {
+    position: relative;
+  }
+  #btnEditarMusica, #btnFerramentas {
     display: none;
     width: 40px;
     height: 40px;
@@ -79,7 +82,7 @@
     align-items: center;
     justify-content: center;
   }
-  #menuLapis {
+  .menuFlutuante {
     display: none;
     position: absolute;
     top: 46px;
@@ -89,11 +92,11 @@
     border: 1px solid #2A3A5C;
     border-radius: 12px;
     padding: 6px;
-    min-width: 180px;
+    min-width: 190px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   }
-  #menuLapis.aberto { display: block; }
-  #menuLapis button {
+  .menuFlutuante.aberto { display: block; }
+  .menuFlutuante button {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -108,8 +111,8 @@
     border-radius: 8px;
     cursor: pointer;
   }
-  #menuLapis button:hover { background: rgba(255,255,255,0.08); }
-  #menuLapis button:disabled { color: #64748B; cursor: not-allowed; }
+  .menuFlutuante button:hover { background: rgba(255,255,255,0.08); }
+  .menuFlutuante button:disabled { color: #64748B; cursor: not-allowed; }
   #formEditarMusica {
     display: none;
     margin-bottom: 20px;
@@ -129,7 +132,7 @@
     margin-bottom: 5px;
   }
   #formEditarMusica label:first-of-type { margin-top: 0; }
-  #formEditarMusica input[type="text"] { background: rgba(0,0,0,0.3); color: var(--tema-texto); }
+  #formEditarMusica input[type="text"], #formEditarMusica input[type="url"] { background: rgba(0,0,0,0.3); color: var(--tema-texto); }
   #formEditarMusica textarea {
     width: 100%;
     min-height: 260px;
@@ -147,6 +150,110 @@
   #formEditarMusica textarea:focus { outline: none; border-color: var(--tema-texto); }
   .botoesEdicao { display: flex; gap: 10px; margin-top: 16px; }
   .botoesEdicao button { margin: 0; width: auto; padding: 10px 16px; font-size: 14px; }
+  .painelFerramenta {
+    display: none;
+    margin-bottom: 20px;
+    background: #0B0B0F;
+    border: 1px solid #2A2A2A;
+    border-radius: 14px;
+    padding: 16px;
+    color: #FFFFFF;
+  }
+  .painelFerramenta.aberto { display: block; }
+  .topoPainelFerramenta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .topoPainelFerramenta h3 { margin: 0; color: #F97316; font-size: 15px; }
+  .fecharPainelFerramenta {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    color: #FFFFFF;
+    border: 1px solid rgba(255,255,255,0.15);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+    margin: 0;
+  }
+  .botaoFerramenta { width: 100%; margin-top: 4px; }
+  .linhaSons { display: flex; gap: 8px; margin-bottom: 16px; }
+  .opcaoSom {
+    flex: 1;
+    padding: 10px 6px;
+    font-size: 13px;
+    border-radius: 10px;
+    border: 1px solid #2A2A2A;
+    background: #16161C;
+    color: #E5E7EB;
+    cursor: pointer;
+    box-shadow: none;
+    margin: 0;
+  }
+  .opcaoSom.ativo { border-color: #F97316; box-shadow: 0 0 0 1px #F97316; color: #F97316; }
+  .linhaBpm { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; justify-content: center; }
+  .linhaBpm button {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 20px;
+    background: #16161C;
+    color: #F97316;
+    border: 1px solid #2A2A2A;
+    box-shadow: none;
+    margin: 0;
+  }
+  .valorBpm { font-size: 26px; font-weight: 700; color: #FFFFFF; min-width: 110px; text-align: center; }
+  .valorBpm span { color: #F97316; }
+  .visorAfinador { text-align: center; margin-bottom: 16px; }
+  .notaGrande { font-size: 48px; font-weight: 700; color: #F97316; }
+  .centsTexto { font-size: 13px; color: #94A3B8; min-height: 18px; margin-bottom: 14px; }
+  .barraAfinador { position: relative; height: 8px; background: #16161C; border-radius: 4px; margin: 0 10px; }
+  .barraAfinador .marcaCentro {
+    position: absolute;
+    left: 50%;
+    top: -6px;
+    width: 2px;
+    height: 20px;
+    background: rgba(255,255,255,0.4);
+    transform: translateX(-50%);
+  }
+  .ponteiroAfinador {
+    position: absolute;
+    top: -8px;
+    width: 14px;
+    height: 24px;
+    border-radius: 4px;
+    background: #FFFFFF;
+    transform: translateX(-50%);
+    left: 50%;
+    transition: left 0.08s linear, background 0.15s ease;
+  }
+  .afinado .ponteiroAfinador { background: #F97316; box-shadow: 0 0 10px rgba(249,115,22,0.8); }
+  #semReferenciaAviso p { margin-top: 0; }
+  .wrapperVideo {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+  }
+  .wrapperVideo iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
 </style>
 </head>
 <body>
@@ -155,11 +262,57 @@
 <span id="titulo">Carregando...</span>
 </div>
 <div id="areaLapis">
+<div class="grupoBotaoMenu">
 <button id="btnEditarMusica">✏️</button>
-<div id="menuLapis">
+<div id="menuLapis" class="menuFlutuante">
 <button type="button" id="btnModoGhost">👻 Modo Ghost</button>
 <button type="button" id="btnAbrirEditarCifra">✏️ Editar cifra</button>
 <button type="button" id="btnAbrirEditarTema">🎨 Editar tema</button>
+</div>
+</div>
+<div class="grupoBotaoMenu">
+<button id="btnFerramentas">🔧</button>
+<div id="menuFerramentas" class="menuFlutuante">
+<button type="button" id="btnAbrirMetronomo">🥁 Metrônomo</button>
+<button type="button" id="btnAbrirAfinador">🎵 Afinador</button>
+<button type="button" id="btnAbrirAcompanhamento">🎬 Acompanhamento</button>
+</div>
+</div>
+</div>
+<div id="painelMetronomo" class="painelFerramenta">
+<div class="topoPainelFerramenta"><h3>Metrônomo</h3><button type="button" class="fecharPainelFerramenta">✕</button></div>
+<div class="linhaSons">
+<button type="button" class="opcaoSom ativo" data-som="clique">Clique</button>
+<button type="button" class="opcaoSom" data-som="palma">Palma</button>
+<button type="button" class="opcaoSom" data-som="cowbell">Cowbell</button>
+</div>
+<div class="linhaBpm">
+<button type="button" id="btnBpmMenos" aria-label="Diminuir BPM">−</button>
+<div class="valorBpm"><span id="valorBpmNum">100</span> BPM</div>
+<button type="button" id="btnBpmMais" aria-label="Aumentar BPM">+</button>
+</div>
+<button type="button" id="btnMetronomoIniciar" class="botaoFerramenta">▶️ Iniciar</button>
+</div>
+<div id="painelAfinador" class="painelFerramenta">
+<div class="topoPainelFerramenta"><h3>Afinador</h3><button type="button" class="fecharPainelFerramenta">✕</button></div>
+<div class="visorAfinador">
+<div id="notaAfinador" class="notaGrande">—</div>
+<div id="centsAfinador" class="centsTexto"></div>
+<div class="barraAfinador">
+<div class="marcaCentro"></div>
+<div id="ponteiroAfinador" class="ponteiroAfinador"></div>
+</div>
+</div>
+<button type="button" id="btnAfinadorIniciar" class="botaoFerramenta">🎤 Iniciar</button>
+</div>
+<div id="painelAcompanhamento" class="painelFerramenta">
+<div class="topoPainelFerramenta"><h3>Acompanhamento</h3><button type="button" class="fecharPainelFerramenta">✕</button></div>
+<div id="semReferenciaAviso" style="display:none;">
+<p>Essa música ainda não tem um link de referência cadastrado.</p>
+<button type="button" id="btnIrEditarReferencia" class="secundario botaoFerramenta" style="display:none;">✏️ Adicionar referência</button>
+</div>
+<div id="videoAcompanhamentoContainer" style="display:none;">
+<div class="wrapperVideo"><iframe id="iframeAcompanhamento" src="" title="Acompanhamento" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>
 </div>
 </div>
 <div id="formEditarMusica">
@@ -167,6 +320,8 @@
 <input type="text" id="editTitulo">
 <label for="editConteudo">Cifra / letra</label>
 <textarea id="editConteudo"></textarea>
+<label for="editReferencia">Referência (link do YouTube) — opcional</label>
+<input type="url" id="editReferencia" placeholder="https://www.youtube.com/watch?v=...">
 <div class="botoesEdicao">
 <button id="btnSalvarMusica">Salvar</button>
 <button id="btnCancelarEdicaoMusica" class="secundario">Cancelar</button>
@@ -192,7 +347,7 @@ return;
 }
 
 try {
-const { data, error } = await sbClient.from('musicas').select('id, titulo, conteudo').eq('id', id).single();
+const { data, error } = await sbClient.from('musicas').select('id, titulo, conteudo, referencia').eq('id', id).single();
 if (error || !data) throw error || new Error('não encontrada');
 
 musicaAtual = data;
@@ -215,7 +370,14 @@ document.getElementById('titulo').textContent = 'Sem internet e sem versão salv
 
 document.getElementById('btnEditarMusica').addEventListener('click', (e) => {
 e.stopPropagation();
+document.getElementById('menuFerramentas').classList.remove('aberto');
 document.getElementById('menuLapis').classList.toggle('aberto');
+});
+
+document.getElementById('btnFerramentas').addEventListener('click', (e) => {
+e.stopPropagation();
+document.getElementById('menuLapis').classList.remove('aberto');
+document.getElementById('menuFerramentas').classList.toggle('aberto');
 });
 
 document.getElementById('btnModoGhost').addEventListener('click', (e) => {
@@ -224,14 +386,20 @@ document.getElementById('menuLapis').classList.remove('aberto');
 alert('Modo Ghost — em breve 👻');
 });
 
-document.getElementById('btnAbrirEditarCifra').addEventListener('click', (e) => {
-e.stopPropagation();
+function abrirFormEditarCifra() {
 if (!ehAdmin || !musicaAtual) return;
-document.getElementById('menuLapis').classList.remove('aberto');
+fecharTodosPainelFerramenta();
 document.getElementById('editTitulo').value = musicaAtual.titulo;
 document.getElementById('editConteudo').value = musicaAtual.conteudo;
+document.getElementById('editReferencia').value = musicaAtual.referencia || '';
 document.getElementById('conteudo').style.display = 'none';
 document.getElementById('formEditarMusica').style.display = 'block';
+}
+
+document.getElementById('btnAbrirEditarCifra').addEventListener('click', (e) => {
+e.stopPropagation();
+document.getElementById('menuLapis').classList.remove('aberto');
+abrirFormEditarCifra();
 });
 
 document.getElementById('btnAbrirEditarTema').addEventListener('click', (e) => {
@@ -244,6 +412,7 @@ document.addEventListener('click', (e) => {
 const area = document.getElementById('areaLapis');
 if (area && !area.contains(e.target)) {
 document.getElementById('menuLapis').classList.remove('aberto');
+document.getElementById('menuFerramentas').classList.remove('aberto');
 }
 });
 
@@ -255,12 +424,13 @@ document.getElementById('conteudo').style.display = 'block';
 document.getElementById('btnSalvarMusica').addEventListener('click', async () => {
 const novoTitulo = document.getElementById('editTitulo').value.trim();
 const novoConteudo = document.getElementById('editConteudo').value;
+const novaReferencia = document.getElementById('editReferencia').value.trim();
 if (!novoTitulo) {
 alert('Preenche o título.');
 return;
 }
 
-const { error } = await sbClient.from('musicas').update({ titulo: novoTitulo, conteudo: novoConteudo }).eq('id', id);
+const { error } = await sbClient.from('musicas').update({ titulo: novoTitulo, conteudo: novoConteudo, referencia: novaReferencia || null }).eq('id', id);
 if (error) {
 alert('Erro ao salvar: ' + error.message);
 console.error(error);
@@ -269,10 +439,290 @@ return;
 
 musicaAtual.titulo = novoTitulo;
 musicaAtual.conteudo = novoConteudo;
+musicaAtual.referencia = novaReferencia || null;
 document.getElementById('titulo').textContent = novoTitulo;
 document.getElementById('conteudo').textContent = novoConteudo;
 document.getElementById('formEditarMusica').style.display = 'none';
 document.getElementById('conteudo').style.display = 'block';
+});
+
+// ---------- Ferramentas: menu, painéis ----------
+
+document.getElementById('btnAbrirMetronomo').addEventListener('click', (e) => {
+e.stopPropagation();
+document.getElementById('menuFerramentas').classList.remove('aberto');
+abrirPainelFerramenta('painelMetronomo');
+});
+
+document.getElementById('btnAbrirAfinador').addEventListener('click', (e) => {
+e.stopPropagation();
+document.getElementById('menuFerramentas').classList.remove('aberto');
+abrirPainelFerramenta('painelAfinador');
+});
+
+document.getElementById('btnAbrirAcompanhamento').addEventListener('click', (e) => {
+e.stopPropagation();
+document.getElementById('menuFerramentas').classList.remove('aberto');
+abrirPainelFerramenta('painelAcompanhamento');
+prepararAcompanhamento();
+});
+
+document.querySelectorAll('.fecharPainelFerramenta').forEach(botao => {
+botao.addEventListener('click', () => {
+fecharTodosPainelFerramenta();
+});
+});
+
+function fecharTodosPainelFerramenta() {
+document.querySelectorAll('.painelFerramenta').forEach(p => p.classList.remove('aberto'));
+pararMetronomo();
+pararAfinador();
+document.getElementById('iframeAcompanhamento').src = '';
+}
+
+function abrirPainelFerramenta(idPainel) {
+fecharTodosPainelFerramenta();
+document.getElementById(idPainel).classList.add('aberto');
+}
+
+document.getElementById('btnIrEditarReferencia').addEventListener('click', (e) => {
+e.stopPropagation();
+abrirFormEditarCifra();
+});
+
+// ---------- Acompanhamento (vídeo do YouTube) ----------
+
+function extrairIdYoutube(url) {
+if (!url) return null;
+const padroes = [
+/(?:youtube\.com\/watch\?v=)([\w-]{11})/,
+/(?:youtu\.be\/)([\w-]{11})/,
+/(?:youtube\.com\/shorts\/)([\w-]{11})/,
+/(?:youtube\.com\/embed\/)([\w-]{11})/
+];
+for (const padrao of padroes) {
+const m = url.match(padrao);
+if (m) return m[1];
+}
+return null;
+}
+
+function prepararAcompanhamento() {
+const aviso = document.getElementById('semReferenciaAviso');
+const container = document.getElementById('videoAcompanhamentoContainer');
+const botaoIr = document.getElementById('btnIrEditarReferencia');
+const link = musicaAtual && musicaAtual.referencia;
+const idVideo = extrairIdYoutube(link);
+botaoIr.style.display = ehAdmin ? 'block' : 'none';
+if (!idVideo) {
+aviso.style.display = 'block';
+container.style.display = 'none';
+document.getElementById('iframeAcompanhamento').src = '';
+} else {
+aviso.style.display = 'none';
+container.style.display = 'block';
+document.getElementById('iframeAcompanhamento').src = `https://www.youtube.com/embed/${idVideo}?autoplay=1`;
+}
+}
+
+// ---------- Metrônomo ----------
+
+let metronomoAudioCtx = null;
+let metronomoTocando = false;
+let metronomoTimerId = null;
+let metronomoBpm = 100;
+let metronomoSom = 'clique';
+
+function obterAudioCtxMetronomo() {
+if (!metronomoAudioCtx) metronomoAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+return metronomoAudioCtx;
+}
+
+function tocarSomMetronomo() {
+const ctx = obterAudioCtxMetronomo();
+const agora = ctx.currentTime;
+if (metronomoSom === 'clique') {
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
+osc.frequency.value = 1000;
+osc.type = 'square';
+gain.gain.setValueAtTime(0.35, agora);
+gain.gain.exponentialRampToValueAtTime(0.001, agora + 0.05);
+osc.connect(gain).connect(ctx.destination);
+osc.start(agora);
+osc.stop(agora + 0.05);
+} else if (metronomoSom === 'palma') {
+const tamanhoBuffer = Math.floor(ctx.sampleRate * 0.15);
+const buffer = ctx.createBuffer(1, tamanhoBuffer, ctx.sampleRate);
+const dados = buffer.getChannelData(0);
+for (let i = 0; i < tamanhoBuffer; i++) dados[i] = (Math.random() * 2 - 1) * Math.exp(-i / (tamanhoBuffer * 0.25));
+const fonte = ctx.createBufferSource();
+fonte.buffer = buffer;
+const filtro = ctx.createBiquadFilter();
+filtro.type = 'bandpass';
+filtro.frequency.value = 1500;
+filtro.Q.value = 0.8;
+const gain = ctx.createGain();
+gain.gain.setValueAtTime(0.9, agora);
+fonte.connect(filtro).connect(gain).connect(ctx.destination);
+fonte.start(agora);
+} else {
+const osc1 = ctx.createOscillator();
+const osc2 = ctx.createOscillator();
+const gain = ctx.createGain();
+osc1.type = 'square'; osc1.frequency.value = 800;
+osc2.type = 'square'; osc2.frequency.value = 540;
+gain.gain.setValueAtTime(0.25, agora);
+gain.gain.exponentialRampToValueAtTime(0.001, agora + 0.3);
+osc1.connect(gain); osc2.connect(gain); gain.connect(ctx.destination);
+osc1.start(agora); osc2.start(agora);
+osc1.stop(agora + 0.3); osc2.stop(agora + 0.3);
+}
+}
+
+function agendarProximoBeat() {
+tocarSomMetronomo();
+metronomoTimerId = setTimeout(agendarProximoBeat, 60000 / metronomoBpm);
+}
+
+function iniciarMetronomo() {
+if (metronomoTocando) return;
+metronomoTocando = true;
+agendarProximoBeat();
+document.getElementById('btnMetronomoIniciar').textContent = '⏸️ Parar';
+}
+
+function pararMetronomo() {
+if (!metronomoTocando) return;
+metronomoTocando = false;
+clearTimeout(metronomoTimerId);
+document.getElementById('btnMetronomoIniciar').textContent = '▶️ Iniciar';
+}
+
+document.querySelectorAll('.opcaoSom').forEach(botao => {
+botao.addEventListener('click', () => {
+document.querySelectorAll('.opcaoSom').forEach(b => b.classList.remove('ativo'));
+botao.classList.add('ativo');
+metronomoSom = botao.getAttribute('data-som');
+});
+});
+
+function ajustarBpm(delta) {
+metronomoBpm = Math.max(40, Math.min(240, metronomoBpm + delta));
+document.getElementById('valorBpmNum').textContent = metronomoBpm;
+if (metronomoTocando) {
+clearTimeout(metronomoTimerId);
+agendarProximoBeat();
+}
+}
+
+document.getElementById('btnBpmMenos').addEventListener('click', () => ajustarBpm(-1));
+document.getElementById('btnBpmMais').addEventListener('click', () => ajustarBpm(1));
+
+document.getElementById('btnMetronomoIniciar').addEventListener('click', () => {
+if (metronomoTocando) pararMetronomo(); else iniciarMetronomo();
+});
+
+// ---------- Afinador ----------
+
+let afinadorAudioCtx = null;
+let afinadorStream = null;
+let afinadorAnalyser = null;
+let afinadorRodando = false;
+let afinadorRaf = null;
+
+const NOTAS_AFINADOR = ['Dó','Dó#','Ré','Ré#','Mi','Fá','Fá#','Sol','Sol#','Lá','Lá#','Si'];
+
+function freqParaNota(freq) {
+const midi = 69 + 12 * Math.log2(freq / 440);
+const midiArred = Math.round(midi);
+const cents = Math.round((midi - midiArred) * 100);
+const nomeNota = NOTAS_AFINADOR[((midiArred % 12) + 12) % 12];
+const oitava = Math.floor(midiArred / 12) - 1;
+return { nome: nomeNota, oitava, cents };
+}
+
+function autocorrelacaoAfinador(buffer, sampleRate) {
+const tamanho = buffer.length;
+let rms = 0;
+for (let i = 0; i < tamanho; i++) rms += buffer[i] * buffer[i];
+rms = Math.sqrt(rms / tamanho);
+if (rms < 0.01) return -1;
+let melhorOffset = -1;
+let melhorCorrelacao = 0;
+let ultimaCorrelacao = 1;
+for (let offset = 40; offset < 1000; offset++) {
+let correlacao = 0;
+for (let i = 0; i < tamanho - offset; i++) {
+correlacao += Math.abs(buffer[i] - buffer[i + offset]);
+}
+correlacao = 1 - (correlacao / (tamanho - offset));
+if (correlacao > 0.9 && correlacao > ultimaCorrelacao) {
+melhorCorrelacao = correlacao;
+melhorOffset = offset;
+}
+ultimaCorrelacao = correlacao;
+}
+if (melhorCorrelacao > 0.01 && melhorOffset !== -1) {
+return sampleRate / melhorOffset;
+}
+return -1;
+}
+
+function loopAfinador() {
+if (!afinadorRodando) return;
+const buffer = new Float32Array(afinadorAnalyser.fftSize);
+afinadorAnalyser.getFloatTimeDomainData(buffer);
+const freq = autocorrelacaoAfinador(buffer, afinadorAudioCtx.sampleRate);
+if (freq !== -1 && freq > 50 && freq < 1200) {
+const { nome, oitava, cents } = freqParaNota(freq);
+document.getElementById('notaAfinador').textContent = nome + oitava;
+document.getElementById('centsAfinador').textContent = (cents > 0 ? '+' : '') + cents + ' cents';
+const ponteiro = document.getElementById('ponteiroAfinador');
+const posicao = Math.max(-50, Math.min(50, cents));
+ponteiro.style.left = (50 + posicao) + '%';
+document.querySelector('.barraAfinador').classList.toggle('afinado', Math.abs(cents) <= 5);
+} else {
+document.getElementById('notaAfinador').textContent = '—';
+document.getElementById('centsAfinador').textContent = '';
+document.querySelector('.barraAfinador').classList.remove('afinado');
+}
+afinadorRaf = requestAnimationFrame(loopAfinador);
+}
+
+async function iniciarAfinador() {
+if (afinadorRodando) return;
+try {
+afinadorStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+} catch (e) {
+alert('Não consegui acessar o microfone.');
+return;
+}
+afinadorAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const fonte = afinadorAudioCtx.createMediaStreamSource(afinadorStream);
+afinadorAnalyser = afinadorAudioCtx.createAnalyser();
+afinadorAnalyser.fftSize = 2048;
+fonte.connect(afinadorAnalyser);
+afinadorRodando = true;
+document.getElementById('btnAfinadorIniciar').textContent = '⏹️ Parar';
+loopAfinador();
+}
+
+function pararAfinador() {
+if (!afinadorRodando) return;
+afinadorRodando = false;
+if (afinadorRaf) cancelAnimationFrame(afinadorRaf);
+if (afinadorStream) afinadorStream.getTracks().forEach(t => t.stop());
+if (afinadorAudioCtx) afinadorAudioCtx.close();
+afinadorAudioCtx = null;
+document.getElementById('btnAfinadorIniciar').textContent = '🎤 Iniciar';
+document.getElementById('notaAfinador').textContent = '—';
+document.getElementById('centsAfinador').textContent = '';
+document.querySelector('.barraAfinador').classList.remove('afinado');
+}
+
+document.getElementById('btnAfinadorIniciar').addEventListener('click', () => {
+if (afinadorRodando) pararAfinador(); else iniciarAfinador();
 });
 
 async function iniciar() {
@@ -282,6 +732,7 @@ if (!sessao) return;
 const perfil = await obterPerfil();
 ehAdmin = !!(perfil && perfil.papel === 'administrador');
 document.getElementById('btnEditarMusica').style.display = 'flex';
+document.getElementById('btnFerramentas').style.display = 'flex';
 document.getElementById('btnAbrirEditarCifra').disabled = !ehAdmin;
 
 iniciarSeletorTema(document.body, { visivelDeInicio: false });
