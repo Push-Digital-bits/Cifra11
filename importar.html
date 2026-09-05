@@ -52,11 +52,11 @@ button.secundario { background: #16213A; color: #FDF8F1; border: 1px solid #2A3A
 <script src="auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
 <script>
-let grupoIdAtual = null;
 let notasCarregadas = [];
 let categoriasDisponiveis = [];
 let categoriasAtivas = new Set();
 let selecionados = new Set();
+let grupoIdAtual = null;
 
 document.getElementById('arquivoDb').addEventListener('change', async (evento) => {
 const arquivo = evento.target.files[0];
