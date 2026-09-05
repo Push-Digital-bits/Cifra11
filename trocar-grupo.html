@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trocar de grupo - G11 Cifras</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="logo.png">
+<meta name="theme-color" content="#05070F">
+<script src="fundo.js" defer></script>
+<style>
+.topo {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 20px;
+padding-bottom: 14px;
+border-bottom: 1px solid #1E293B;
+}
+a.voltar {
+font-size: 20px;
+color: #E5E7EB;
+background: #16213A;
+border: 1px solid #2A3A5C;
+width: 38px;
+height: 38px;
+border-radius: 10px;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+}
+.topo h1 { margin: 0; }
+.cartaoGrupo {
+display: flex;
+align-items: center;
+gap: 12px;
+background: #16213A;
+border: 1px solid #2A3A5C;
+border-radius: 12px;
+padding: 14px;
+margin-bottom: 10px;
+cursor: pointer;
+}
+.cartaoGrupo.ativo { border-color: #F97316; }
+.cartaoGrupo img { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: #0F172A; }
+.cartaoGrupo .info { flex: 1; }
+.cartaoGrupo .nome { font-weight: 700; color: #E5E7EB; font-size: 15px; }
+.cartaoGrupo .papel { font-size: 12px; color: #94A3B8; margin-top: 2px; text-transform: capitalize; }
+.cartaoGrupo .marca { color: #F97316; font-size: 13px; font-weight: 700; }
+#formEntrar { margin-top: 22px; padding-top: 18px; border-top: 1px solid #1E293B; }
+#formEntrar label { display: block; font-size: 12px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+#status { margin-top: 10px; font-size: 14px; color: #94A3B8; }
+</style>
+</head>
+<body>
+
+<div class="topo">
+<a href="index.html" class="voltar">←</a>
+<h1>Meus grupos</h1>
+<div style="width:38px;"></div>
+</div>
+
+<div id="lista">Carregando...</div>
+
+<div id="formEntrar">
+<h3>Adicionar novo perfil</h3>
+<label for="nomeNovoPerfil">Seu nome nesse grupo</label>
+<input type="text" id="nomeNovoPerfil" placeholder="Seu nome">
+<label for="codigoNovoGrupo">Código do grupo</label>
+<input type="text" id="codigoNovoGrupo" inputmode="numeric" maxlength="6" placeholder="Ex: 011519">
+<button id="btnEntrarGrupo">Entrar no grupo</button>
+<div id="status"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
+<script src="auth.js"></script>
+<script>
+async function iniciar() {
+  const sessao = await protegerPagina();
+  if (!sessao) return;
+
+  const perfis = await obterPerfis();
+  const grupoAtivoId = localStorage.getItem('g11cifras_grupoAtivo');
+  const container = document.getElementById('lista');
+
+  if (perfis.length === 0) {
+    container.innerHTML = '<p style="color:#64748B">Você ainda não faz parte de nenhum grupo.</p>';
+    return;
+  }
+
+  container.innerHTML = perfis.map((p) => {
+    const grupo = p.grupos || {};
+    const imagem = grupo.imagem_url || 'logo.png';
+    const ativo = p.grupo_id === grupoAtivoId;
+    return `
+      <div class="cartaoGrupo ${ativo ? 'ativo' : ''}" data-grupo-id="${p.grupo_id}">
+        <img src="${imagem}" alt="">
+        <div class="info">
+          <div class="nome">${grupo.nome || 'Grupo'}</div>
+          <div class="papel">${p.papel}${p.status === 'pendente' ? ' — pendente' : ''}</div>
+        </div>
+        ${ativo ? '<span class="marca">Ativo</span>' : ''}
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.cartaoGrupo').forEach((el) => {
+    el.addEventListener('click', () => {
+      trocarGrupoAtivo(el.getAttribute('data-grupo-id'));
+    });
+  });
+}
+
+document.getElementById('btnEntrarGrupo').addEventListener('click', async () => {
+  const nome = document.getElementById('nomeNovoPerfil').value.trim();
+  const codigo = document.getElementById('codigoNovoGrupo').value.trim();
+  const status = document.getElementById('status');
+
+  if (!nome || !/^\d{6}$/.test(codigo)) {
+    status.textContent = 'Preenche seu nome e o código de 6 números do grupo.';
+    return;
+  }
+
+  status.textContent = 'Entrando...';
+  const { data, error } = await entrarEmGrupo(codigo, nome);
+
+  if (error) {
+    status.textContent = error.message.includes('codigo_invalido')
+      ? 'Código do grupo inválido.'
+      : error.message.includes('ja_e_membro')
+      ? 'Você já faz parte desse grupo.'
+      : 'Erro: ' + error.message;
+    return;
+  }
+
+  if (data && data.status === 'pendente') {
+    status.textContent = 'Grupo com limite de membros atingido — você ficou pendente até o administrador liberar mais vagas.';
+  } else {
+    status.textContent = 'Entrou no grupo!';
+  }
+
+  trocarGrupoAtivo(data.grupo_id);
+});
+
+iniciar();
+</script>
+</body>
+</html>
