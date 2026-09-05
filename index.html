@@ -9,21 +9,74 @@
   <style>
     #topo {
       display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-    }
-    #topo .marca { font-size: 20px; font-weight: 700; color: #FDF8F1; }
-    #topo .marca span { color: #F97316; }
-
-    #boasVindas {
-      font-size: 13px;
-      color: #94A3B8;
-      display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
+      margin-bottom: 2px;
     }
-    #boasVindas a { font-size: 13px; }
+
+    #logoTopo {
+      width: 78px;
+      height: 40px;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+    #logoTopo img {
+      position: absolute;
+      width: 87.08px;
+      height: 87.08px;
+      left: -6.6px;
+      top: -17.36px;
+      max-width: none;
+    }
+
+    #menuConfig { position: relative; flex-shrink: 0; }
+    #btnConfig {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid #33426b;
+      color: #FDF8F1;
+      font-size: 18px;
+      box-shadow: none;
+      line-height: 1;
+    }
+    #btnConfig:hover { background: rgba(255, 255, 255, 0.12); filter: none; }
+
+    #dropdownConfig {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 46px;
+      min-width: 190px;
+      background: #16213A;
+      border: 1px solid #2A3A5C;
+      border-radius: 12px;
+      overflow: hidden;
+      z-index: 30;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    }
+    #dropdownConfig.aberto { display: block; }
+    #dropdownConfig a {
+      display: block;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #E5E7EB;
+      text-decoration: none;
+      border-bottom: 1px solid #1E293B;
+    }
+    #dropdownConfig a:last-child { border-bottom: none; }
+    #dropdownConfig a:active { background: #0F172A; }
+
+    #saudacaoTopo {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #FDF8F1;
+      margin: 10px 0 16px;
+    }
 
     #busca { margin-bottom: 14px; }
 
@@ -31,9 +84,39 @@
     .cardRepertorio {
       display: block;
       text-decoration: none;
+      position: relative;
+      overflow: hidden;
+      border-left: 4px solid var(--cor-culto, #F97316);
+      animation: apareceCard 0.35s ease both;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .cardRepertorio .nome { font-weight: 700; font-size: 15px; color: #FDF8F1; }
-    .cardRepertorio .dias { font-size: 12px; color: #94A3B8; margin-top: 2px; }
+    .cardRepertorio::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      right: -20px;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--cor-culto, #F97316) 0%, transparent 70%);
+      opacity: 0.22;
+      pointer-events: none;
+    }
+    .cardRepertorio:active { transform: scale(0.98); }
+    .cardRepertorio .nome {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--cor-culto, #FDF8F1);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .cardRepertorio .icone { font-size: 17px; }
+    .cardRepertorio .dias { font-size: 12px; color: #94A3B8; margin-top: 3px; }
+    @keyframes apareceCard {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     .linksAcao { margin-bottom: 16px; }
     .linksAcao a {
@@ -58,9 +141,17 @@
 </head>
 <body>
   <div id="topo">
-    <div class="marca">G11 <span>Cifras</span></div>
+    <div id="logoTopo"><img src="logo.png" alt="G11 Cifras"></div>
+    <div id="menuConfig">
+      <button id="btnConfig" type="button" aria-label="Configurações">⚙️</button>
+      <div id="dropdownConfig">
+        <a href="#" id="btnSair">Sair</a>
+        <a href="importar.html" id="menuImportar" style="display:none;">📥 Importar músicas</a>
+        <a href="admin.html" id="menuAdmin" style="display:none;">👤 Gerenciar usuários</a>
+      </div>
+    </div>
   </div>
-  <div id="boasVindas"></div>
+  <div id="saudacaoTopo"></div>
 
   <input type="text" id="busca" placeholder="Buscar música...">
 
@@ -68,8 +159,8 @@
 
   <div class="linksAcao">
     <a id="linkNovoRepertorio" href="novo-repertorio.html" style="display:none;">+ Criar novo repertório</a>
-    <a id="linkImportar" href="importar.html" style="display:none;">📥 Importar músicas (.db)</a>
-    <a id="linkAdmin" href="admin.html" style="display:none;">⚙️ Gerenciar usuários</a>
+    <a id="linkNovaMusica" href="nova-musica.html" style="display:none;">🎵 Adicionar nova música</a>
+    <a id="linkYoutube" href="https://www.youtube.com/" target="_blank" rel="noopener" style="display:none;">▶️ Acessar o YouTube</a>
   </div>
 
   <div id="contador"></div>
@@ -145,6 +236,21 @@
       return `${dia}/${mes}/${ano}`;
     }
 
+    function saudacaoPorHora() {
+      const hora = new Date().getHours();
+      if (hora < 12) return 'Bom dia';
+      if (hora < 18) return 'Boa tarde';
+      return 'Boa noite';
+    }
+
+    function estiloCulto(nome) {
+      const n = normalizar(nome);
+      if (n.includes('quinta')) return { cor: '#A78BFA', icone: '🎤' };
+      if (n.includes('domingo')) return { cor: '#38BDF8', icone: '⛪' };
+      if (n.includes('ensaio')) return { cor: '#34D399', icone: '🎸' };
+      return { cor: '#F97316', icone: '🎶' };
+    }
+
     async function verificarRepertorioDeHoje() {
       const hoje = new Date().toISOString().split('T')[0];
       const { data } = await sbClient
@@ -175,11 +281,12 @@
         return;
       }
 
-      container.innerHTML = data.map(r => {
+      container.innerHTML = data.map((r, indice) => {
         const dias = Math.ceil((new Date(r.data_evento) - new Date(hoje)) / 86400000);
+        const { cor, icone } = estiloCulto(r.nome);
         return `
-          <a class="cardRepertorio card" href="repertorio.html?id=${r.id}">
-            <div class="nome">${r.nome}</div>
+          <a class="cardRepertorio card" href="repertorio.html?id=${r.id}" style="--cor-culto:${cor}; animation-delay:${indice * 0.06}s;">
+            <div class="nome"><span class="icone">${icone}</span>${r.nome}</div>
             <div class="dias">${formatarData(r.data_evento)} — faltam ${dias} dia(s)</div>
           </a>
         `;
@@ -205,6 +312,15 @@
       renderizar(buscar(e.target.value));
     });
 
+    document.getElementById('btnConfig').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('dropdownConfig').classList.toggle('aberto');
+    });
+    document.getElementById('dropdownConfig').addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', () => {
+      document.getElementById('dropdownConfig').classList.remove('aberto');
+    });
+
     async function iniciar() {
       const sessao = await protegerPagina();
       if (!sessao) return;
@@ -213,10 +329,8 @@
       const nome = perfil ? perfil.nome : "";
       const ehAdmin = perfil && perfil.papel === "administrador";
 
-      document.getElementById('boasVindas').innerHTML = `
-        <span>Bem-vindo, ${nome}!</span>
-        <a href="#" id="btnSair">Sair</a>
-      `;
+      document.getElementById('saudacaoTopo').textContent = `${saudacaoPorHora()}, ${nome}!`;
+
       document.getElementById('btnSair').addEventListener('click', (e) => {
         e.preventDefault();
         fazerLogout();
@@ -224,8 +338,10 @@
 
       if (ehAdmin) {
         document.getElementById('linkNovoRepertorio').style.display = 'inline-block';
-        document.getElementById('linkImportar').style.display = 'inline-block';
-        document.getElementById('linkAdmin').style.display = 'inline-block';
+        document.getElementById('linkNovaMusica').style.display = 'inline-block';
+        document.getElementById('linkYoutube').style.display = 'inline-block';
+        document.getElementById('menuImportar').style.display = 'block';
+        document.getElementById('menuAdmin').style.display = 'block';
       }
 
       carregar();
