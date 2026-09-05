@@ -87,11 +87,13 @@ margin-bottom: 8px;
 <input type="text" id="novoCodigo" inputmode="numeric" maxlength="6" placeholder="Ex: 348271">
 <label for="novoLimite">Limite de membros</label>
 <input type="number" id="novoLimite" value="50" min="1">
-<label for="novaImagem">URL da imagem/logo (opcional)</label>
-<input type="url" id="novaImagem" placeholder="https://...">
+<label for="novaImagem">Foto do grupo (opcional)</label>
+<input type="file" id="novaImagem" accept="image/*">
 <button id="btnCriarGrupo">Criar grupo</button>
 <div id="statusNovoGrupo"></div>
 </div>
+
+<input type="file" id="inputFotoExistente" accept="image/*" style="display:none;">
 
 <h2 class="secao">Grupos ativos</h2>
 <div id="listaAtivos">Carregando...</div>
@@ -150,6 +152,7 @@ async function carregarGrupos() {
         </div>
         <div class="acoes">
           <button class="pequeno secundario" data-acao="entrar" data-id="${g.id}">Entrar no grupo</button>
+          <button class="pequeno secundario" data-acao="foto" data-id="${g.id}" data-codigo="${g.codigo}">Trocar foto</button>
           <button class="pequeno perigo" data-acao="excluir" data-id="${g.id}">Mover pra lixeira</button>
         </div>
       </div>
@@ -180,6 +183,13 @@ async function carregarGrupos() {
     btn.addEventListener('click', () => trocarGrupoAtivo(btn.getAttribute('data-id')));
   });
 
+  document.querySelectorAll('[data-acao="foto"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      grupoAlvoFoto = { id: btn.getAttribute('data-id'), codigo: btn.getAttribute('data-codigo') };
+      document.getElementById('inputFotoExistente').click();
+    });
+  });
+
   document.querySelectorAll('[data-acao="excluir"]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       if (!confirm('Mover esse grupo pra lixeira? Os membros perdem o acesso imediatamente. Você pode restaurar dentro de 14 dias.')) return;
@@ -207,11 +217,38 @@ async function carregarGrupos() {
   });
 }
 
+let grupoAlvoFoto = null;
+
+async function enviarImagemGrupo(arquivo, codigo) {
+  const ext = (arquivo.name.split('.').pop() || 'jpg').toLowerCase();
+  const caminho = `grupo-${codigo}-${Date.now()}.${ext}`;
+  const { error: erroUpload } = await sbClient.storage.from('grupos-imagens').upload(caminho, arquivo, { upsert: true });
+  if (erroUpload) throw erroUpload;
+  const { data } = sbClient.storage.from('grupos-imagens').getPublicUrl(caminho);
+  return data.publicUrl;
+}
+
+document.getElementById('inputFotoExistente').addEventListener('change', async (e) => {
+  const arquivo = e.target.files[0];
+  if (!arquivo || !grupoAlvoFoto) return;
+  try {
+    const url = await enviarImagemGrupo(arquivo, grupoAlvoFoto.codigo);
+    const { error } = await sbClient.from('grupos').update({ imagem_url: url }).eq('id', grupoAlvoFoto.id);
+    if (error) { alert('Erro: ' + error.message); return; }
+    carregarGrupos();
+  } catch (err) {
+    alert('Erro ao enviar a foto: ' + err.message);
+  } finally {
+    e.target.value = '';
+    grupoAlvoFoto = null;
+  }
+});
+
 document.getElementById('btnCriarGrupo').addEventListener('click', async () => {
   const nome = document.getElementById('novoNome').value.trim();
   const codigo = document.getElementById('novoCodigo').value.trim();
   const limite = parseInt(document.getElementById('novoLimite').value, 10) || 50;
-  const imagem = document.getElementById('novaImagem').value.trim();
+  const arquivoImagem = document.getElementById('novaImagem').files[0];
   const status = document.getElementById('statusNovoGrupo');
 
   if (!nome || !/^\d{6}$/.test(codigo)) {
@@ -219,12 +256,23 @@ document.getElementById('btnCriarGrupo').addEventListener('click', async () => {
     return;
   }
 
+  let imagemUrl = null;
+  if (arquivoImagem) {
+    try {
+      status.textContent = 'Enviando foto...';
+      imagemUrl = await enviarImagemGrupo(arquivoImagem, codigo);
+    } catch (e) {
+      status.textContent = 'Erro ao enviar a foto: ' + e.message;
+      return;
+    }
+  }
+
   status.textContent = 'Criando...';
   const { error } = await sbClient.from('grupos').insert({
     nome: nome,
     codigo: codigo,
     limite_membros: limite,
-    imagem_url: imagem || null
+    imagem_url: imagemUrl
   });
 
   if (error) {
