@@ -78,25 +78,27 @@ function iniciarSeletorTema(elementoAlvo, opcoes = {}) {
     style.textContent = `
       #botaoTema {
         position: fixed;
-        bottom: 20px;
+        top: 20px;
         right: 20px;
         width: 54px;
         height: 54px;
         border-radius: 50%;
-        background: #F97316;
+        background: linear-gradient(145deg, #5B5B64, #2C2C32);
         color: #0F172A;
         font-size: 24px;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.45);
-        border: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+        border: 1px solid rgba(255,255,255,0.10);
         cursor: pointer;
         z-index: 1000;
         padding: 0;
+        transition: top 0.2s ease;
       }
+      body.avisoAtivo #botaoTema { top: 66px; }
       #painelTema {
         position: fixed;
-        bottom: 84px;
+        top: 84px;
         right: 20px;
         left: 20px;
         margin-left: auto;
@@ -110,7 +112,9 @@ function iniciarSeletorTema(elementoAlvo, opcoes = {}) {
         display: none;
         z-index: 1000;
         box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        transition: top 0.2s ease;
       }
+      body.avisoAtivo #painelTema { top: 130px; }
       #painelTema.aberto { display: block; }
       #painelTema .rotuloTema {
         font-size: 11px;
