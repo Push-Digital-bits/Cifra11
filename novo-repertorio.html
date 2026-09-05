@@ -38,6 +38,8 @@ button { margin-top: 24px; width: 100%; }
 <script src="supabaseClient.js"></script>
 <script src="auth.js"></script>
 <script>
+let grupoIdAtual = null;
+
 document.getElementById('btnCriar').addEventListener('click', async () => {
 const nome = document.getElementById('nome').value.trim();
 const data = document.getElementById('data').value;
@@ -51,7 +53,7 @@ document.getElementById('status').textContent = 'Criando...';
 
 const { data: repertorio, error } = await sbClient
 .from('repertorios')
-.insert({ nome: nome, data_evento: data })
+.insert({ nome: nome, data_evento: data, grupo_id: grupoIdAtual })
 .select()
 .single();
 
@@ -68,13 +70,13 @@ const sessao = await protegerPagina();
 if (!sessao) return;
 
 const perfil = await obterPerfil();
-const ehAdmin = !!(perfil && perfil.papel === 'administrador');
 
-if (!ehAdmin) {
+if (!perfil || !perfil.podeEditarConteudo) {
 window.location.href = 'index.html';
 return;
 }
 
+grupoIdAtual = perfil.grupoId;
 document.getElementById('conteudo').style.display = 'block';
 }
 
