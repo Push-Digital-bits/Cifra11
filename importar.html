@@ -20,6 +20,11 @@ button { padding: 10px 16px; font-size: 14px; margin-right: 10px; margin-top: 0;
 button.secundario { background: #16213A; color: #FDF8F1; border: 1px solid #2A3A5C; }
 #status { margin: 12px 0; font-weight: 700; color: #F97316; }
 #controles { margin-top: 16px; }
+#rotuloFiltro { margin-bottom: 6px; }
+#filtroCategorias { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+#filtroCategorias label { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #16213A; border: 1px solid #2A3A5C; border-radius: 20px; font-size: 12px; color: #E5E7EB; cursor: pointer; }
+#filtroCategorias label input { margin: 0; width: auto; }
+.botoesMarcar { display: flex; gap: 10px; }
 </style>
 </head>
 <body>
@@ -29,8 +34,12 @@ button.secundario { background: #16213A; color: #FDF8F1; border: 1px solid #2A3A
 <div id="status"></div>
 
 <div id="controles" style="display:none;">
-<button id="btnMarcarCifras" class="secundario">Marcar só categoria "Cifras"</button>
-<button id="btnDesmarcarTudo" class="secundario">Desmarcar tudo</button>
+<div id="rotuloFiltro" class="categoria">Categorias no arquivo:</div>
+<div id="filtroCategorias"></div>
+<div class="botoesMarcar">
+<button type="button" id="btnMarcarTodos" class="secundario">☑️ Marcar todos</button>
+<button type="button" id="btnDesmarcarTodos" class="secundario">⬜ Desmarcar todos</button>
+</div>
 </div>
 
 <div id="lista"></div>
@@ -44,6 +53,9 @@ button.secundario { background: #16213A; color: #FDF8F1; border: 1px solid #2A3A
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
 <script>
 let notasCarregadas = [];
+let categoriasDisponiveis = [];
+let categoriasAtivas = new Set();
+let selecionados = new Set();
 
 document.getElementById('arquivoDb').addEventListener('change', async (evento) => {
 const arquivo = evento.target.files[0];
@@ -80,56 +92,86 @@ conteudo: linha[2] || '',
 categoria: linha[3]
 }));
 
+categoriasDisponiveis = [...new Set(notasCarregadas.map(nota => nota.categoria))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+categoriasAtivas = new Set(categoriasDisponiveis);
+selecionados = new Set(
+notasCarregadas.map((nota, indice) => nota.categoria === 'Cifras' ? indice : null).filter(indice => indice !== null)
+);
+
+renderizarFiltroCategorias();
 renderizarLista();
 document.getElementById('status').textContent = `${notasCarregadas.length} notas encontradas.`;
 document.getElementById('controles').style.display = 'block';
 document.getElementById('btnImportar').style.display = 'inline-block';
 });
 
+function renderizarFiltroCategorias() {
+const container = document.getElementById('filtroCategorias');
+container.innerHTML = categoriasDisponiveis.map(cat => `
+<label><input type="checkbox" data-categoria="${cat.replace(/"/g, '&quot;')}" ${categoriasAtivas.has(cat) ? 'checked' : ''}> ${cat}</label>
+`).join('');
+
+container.querySelectorAll('input[type="checkbox"]').forEach(caixa => {
+caixa.addEventListener('change', () => {
+const cat = caixa.getAttribute('data-categoria');
+if (caixa.checked) categoriasAtivas.add(cat); else categoriasAtivas.delete(cat);
+renderizarLista();
+});
+});
+}
+
 function renderizarLista() {
 const container = document.getElementById('lista');
 container.innerHTML = '';
 
 notasCarregadas.forEach((nota, indice) => {
+if (!categoriasAtivas.has(nota.categoria)) return;
+
 const linha = document.createElement('div');
 linha.className = 'linha';
 linha.innerHTML = `
-<input type="checkbox" data-indice="${indice}" ${nota.categoria === 'Cifras' ? 'checked' : ''}>
+<input type="checkbox" data-indice="${indice}" ${selecionados.has(indice) ? 'checked' : ''}>
 <span class="categoria">${nota.categoria}</span>
 <input type="text" data-indice="${indice}" value="${nota.titulo.replace(/"/g, '&quot;')}">
 `;
 container.appendChild(linha);
 });
+
+container.querySelectorAll('input[type="checkbox"]').forEach(caixa => {
+caixa.addEventListener('change', () => {
+const indice = Number(caixa.getAttribute('data-indice'));
+if (caixa.checked) selecionados.add(indice); else selecionados.delete(indice);
+});
+});
 }
 
-document.getElementById('btnMarcarCifras').addEventListener('click', () => {
-document.querySelectorAll('#lista input[type="checkbox"]').forEach((caixa, i) => {
-caixa.checked = notasCarregadas[i].categoria === 'Cifras';
+document.getElementById('btnMarcarTodos').addEventListener('click', () => {
+notasCarregadas.forEach((nota, indice) => {
+if (categoriasAtivas.has(nota.categoria)) selecionados.add(indice);
 });
+renderizarLista();
 });
 
-document.getElementById('btnDesmarcarTudo').addEventListener('click', () => {
-document.querySelectorAll('#lista input[type="checkbox"]').forEach(caixa => caixa.checked = false);
+document.getElementById('btnDesmarcarTodos').addEventListener('click', () => {
+selecionados.clear();
+renderizarLista();
 });
 
 document.getElementById('btnImportar').addEventListener('click', async () => {
-const checkboxes = document.querySelectorAll('#lista input[type="checkbox"]');
-const titulos = document.querySelectorAll('#lista input[type="text"]');
-
-const selecionadas = [];
-checkboxes.forEach((caixa, i) => {
-if (caixa.checked) {
-selecionadas.push({
-titulo: titulos[i].value.trim(),
-conteudo: notasCarregadas[i].conteudo
-});
-}
-});
-
-if (selecionadas.length === 0) {
+if (selecionados.size === 0) {
 alert('Marque pelo menos uma música.');
 return;
 }
+
+const titulosEditados = {};
+document.querySelectorAll('#lista input[type="text"]').forEach(campo => {
+titulosEditados[Number(campo.getAttribute('data-indice'))] = campo.value.trim();
+});
+
+const selecionadas = [...selecionados].map(indice => ({
+titulo: titulosEditados[indice] !== undefined ? titulosEditados[indice] : notasCarregadas[indice].titulo,
+conteudo: notasCarregadas[indice].conteudo
+}));
 
 document.getElementById('status').textContent = `Importando ${selecionadas.length} músicas...`;
 
