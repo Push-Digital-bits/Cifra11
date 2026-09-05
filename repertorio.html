@@ -1,341 +1,423 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Repertório</title>
-  <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 15px; }
-    a.voltar { text-decoration: none; color: #222; }
-    #cabecalho { margin-bottom: 10px; }
-    #saudacao { color: #2a7; font-weight: bold; }
-    #infoData { color: #888; font-size: 14px; }
-    #btnEditar { margin: 10px 0; padding: 8px 14px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Repertório - G11 Cifras</title>
+<link rel="stylesheet" href="estilo.css">
+<style>
+body { max-width: 640px; padding-bottom: 40px; }
+a.voltar { display: inline-block; margin-bottom: 14px; font-weight: 600; font-size: 14px; }
+#cabecalho { margin-bottom: 6px; }
+#nomeRepertorio { margin-bottom: 4px; }
+#saudacao { color: #F97316; font-weight: 700; font-size: 14px; }
+#infoData { color: #94A3B8; font-size: 13px; }
+#btnEditar { margin: 14px 0; width: auto; padding: 10px 16px; font-size: 14px; }
 
-    #editarCabecalho { display: none; background: #f5f5f5; padding: 12px; border-radius: 8px; margin: 10px 0; }
-    #editarCabecalho label { display: block; font-size: 13px; font-weight: bold; margin-top: 8px; }
-    #editarCabecalho input { width: 100%; padding: 8px; font-size: 15px; box-sizing: border-box; margin-top: 3px; }
-    #editarCabecalho button { margin-top: 10px; padding: 8px 12px; margin-right: 8px; }
-    #btnExcluirRepertorio { background: #e33; color: white; border: none; border-radius: 4px; }
+#editarCabecalho {
+display: none;
+background: #16213A;
+border: 1px solid #2A3A5C;
+padding: 16px;
+border-radius: 12px;
+margin: 12px 0 22px;
+}
+#editarCabecalho label {
+display: block;
+font-size: 11px;
+font-weight: 700;
+color: #94A3B8;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+margin-top: 12px;
+margin-bottom: 5px;
+}
+#editarCabecalho label:first-child { margin-top: 0; }
+#editarCabecalho button { margin-top: 16px; margin-right: 8px; width: auto; }
+#btnExcluirRepertorio { background: #ef4444; color: #fff; }
 
-    .linhaMusica { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-    .linhaMusica .titulo { flex: 1; font-size: 17px; }
-    .linhaMusica button { margin-left: 6px; padding: 4px 8px; }
+.linhaMusica {
+display: flex;
+align-items: center;
+padding: 12px 14px;
+background: #16213A;
+border: 1px solid #2A3A5C;
+border-radius: 10px;
+margin-bottom: 8px;
+}
+.linhaMusica .titulo { flex: 1; font-size: 15px; color: #E5E7EB; }
+.linhaMusica button {
+margin-left: 6px;
+padding: 6px 10px;
+font-size: 13px;
+width: auto;
+background: #0F172A;
+border: 1px solid #2A3A5C;
+color: #E5E7EB;
+}
 
-    #areaAdicionar { margin-top: 20px; padding-top: 15px; border-top: 2px solid #ddd; }
-    #buscaAdicionar { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; }
-    .resultadoBusca { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #f0f0f0; }
+#areaAdicionar { margin-top: 26px; padding-top: 18px; border-top: 1px solid #1E293B; }
+#buscaAdicionar { margin-bottom: 10px; border-radius: 30px; }
+.resultadoBusca {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 10px 12px;
+border-bottom: 1px solid #1E293B;
+}
+.resultadoBusca span { color: #E5E7EB; font-size: 14px; }
+.resultadoBusca button { width: auto; padding: 6px 12px; font-size: 13px; }
 
-    #vazio { color: #888; }
+#vazio { color: #64748B; }
 
-    #telaCifra { display: none; }
-    #topoCifra { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-    #setaVoltar { font-size: 28px; text-decoration: none; color: #222; }
-    #tituloCifra { font-size: 20px; font-weight: bold; text-align: center; flex: 1; margin: 0 10px; }
-    #setaProxima { font-size: 28px; text-decoration: none; color: #222; text-align: right; }
-    #nomeProxima { font-size: 11px; color: #888; display: block; text-align: right; max-width: 100px; }
-    #conteudoCifra {
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: 'Courier New', monospace;
-      font-size: 16px;
-      line-height: 1.4;
-    }
-  </style>
+#telaCifra { display: none; }
+#topoCifra {
+display: flex;
+justify-content: space-between;
+align-items: flex-start;
+margin-bottom: 16px;
+padding-bottom: 14px;
+border-bottom: 1px solid #1E293B;
+}
+#setaVoltar {
+font-size: 20px;
+color: #E5E7EB;
+background: #16213A;
+border: 1px solid #2A3A5C;
+width: 38px;
+height: 38px;
+border-radius: 10px;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+}
+#tituloCifra { font-size: 17px; font-weight: 700; color: #FDF8F1; text-align: center; flex: 1; margin: 0 10px; }
+#setaProxima {
+font-size: 20px;
+color: #E5E7EB;
+text-align: right;
+flex-shrink: 0;
+min-width: 38px;
+}
+#nomeProxima {
+font-size: 10px;
+color: #64748B;
+display: block;
+text-align: right;
+max-width: 110px;
+margin-top: 3px;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+#conteudoCifra {
+white-space: pre-wrap;
+word-break: break-word;
+font-family: 'Courier New', monospace;
+font-size: 16px;
+line-height: 1.55;
+background: #16213A;
+border: 1px solid #2A3A5C;
+border-radius: 12px;
+padding: 18px 16px;
+color: #E5E7EB;
+}
+</style>
 </head>
 <body>
 
-  <div id="telaLista">
-    <a class="voltar" href="index.html">← Voltar</a>
-    <div id="cabecalho">
-      <h1 id="nomeRepertorio">Carregando...</h1>
-      <div id="saudacao"></div>
-      <div id="infoData"></div>
-    </div>
+<div id="telaLista">
+<a class="voltar" href="index.html">← Voltar</a>
+<div id="cabecalho">
+<h1 id="nomeRepertorio">Carregando...</h1>
+<div id="saudacao"></div>
+<div id="infoData"></div>
+</div>
 
-    <button id="btnEditar" style="display:none;">Editar repertório</button>
+<button id="btnEditar" style="display:none;">Editar repertório</button>
 
-    <div id="editarCabecalho">
-      <label for="editNome">Nome do repertório</label>
-      <input type="text" id="editNome">
-      <label for="editData">Data</label>
-      <input type="date" id="editData">
-      <button id="btnSalvarCabecalho">Salvar alterações</button>
-      <button id="btnExcluirRepertorio">Excluir repertório</button>
-    </div>
+<div id="editarCabecalho">
+<label for="editNome">Nome do repertório</label>
+<input type="text" id="editNome">
+<label for="editData">Data</label>
+<input type="date" id="editData">
+<button id="btnSalvarCabecalho">Salvar alterações</button>
+<button id="btnExcluirRepertorio">Excluir repertório</button>
+</div>
 
-    <div id="listaMusicas"></div>
+<div id="listaMusicas"></div>
 
-    <div id="areaAdicionar" style="display:none;">
-      <h3>Adicionar música</h3>
-      <input type="text" id="buscaAdicionar" placeholder="Buscar música pra adicionar...">
-      <div id="resultadosBusca"></div>
-    </div>
-  </div>
+<div id="areaAdicionar" style="display:none;">
+<h3>Adicionar música</h3>
+<input type="text" id="buscaAdicionar" placeholder="Buscar música pra adicionar...">
+<div id="resultadosBusca"></div>
+</div>
+</div>
 
-  <div id="telaCifra">
-    <div id="topoCifra">
-      <a id="setaVoltar" href="#">←</a>
-      <div id="tituloCifra"></div>
-      <a id="setaProxima" href="#">
-        →
-        <span id="nomeProxima"></span>
-      </a>
-    </div>
-    <div id="conteudoCifra"></div>
-  </div>
+<div id="telaCifra">
+<div id="topoCifra">
+<a id="setaVoltar" href="#">←</a>
+<div id="tituloCifra"></div>
+<a id="setaProxima" href="#">
+→
+<span id="nomeProxima"></span>
+</a>
+</div>
+<div id="conteudoCifra"></div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabaseClient.js"></script>
-  <script src="auth.js"></script>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const repertorioId = params.get('id');
-    let itens = [];
-    let indiceAtual = -1;
-    let modoEdicao = false;
-    let todasMusicas = [];
-    let repertorioAtual = null;
-    let ehAdmin = false;
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
+<script src="auth.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const repertorioId = params.get('id');
+let itens = [];
+let indiceAtual = -1;
+let modoEdicao = false;
+let todasMusicas = [];
+let repertorioAtual = null;
+let ehAdmin = false;
 
-    function formatarData(iso) {
-      const [ano, mes, dia] = iso.split('-');
-      return `${dia}/${mes}/${ano}`;
-    }
+function formatarData(iso) {
+const [ano, mes, dia] = iso.split('-');
+return `${dia}/${mes}/${ano}`;
+}
 
-    function atualizarCabecalhoVisual() {
-      document.getElementById('nomeRepertorio').textContent = repertorioAtual.nome;
+function atualizarCabecalhoVisual() {
+document.getElementById('nomeRepertorio').textContent = repertorioAtual.nome;
 
-      const hoje = new Date().toISOString().split('T')[0];
-      const diffDias = Math.ceil((new Date(repertorioAtual.data_evento) - new Date(hoje)) / 86400000);
+const hoje = new Date().toISOString().split('T')[0];
+const diffDias = Math.ceil((new Date(repertorioAtual.data_evento) - new Date(hoje)) / 86400000);
 
-      if (repertorioAtual.data_evento === hoje) {
-        document.getElementById('saudacao').textContent = '🎶 Bom culto! Hoje é o dia deste repertório.';
-        document.getElementById('infoData').textContent = '';
-      } else if (diffDias > 0) {
-        document.getElementById('saudacao').textContent = '';
-        document.getElementById('infoData').textContent = `${formatarData(repertorioAtual.data_evento)} — faltam ${diffDias} dia(s)`;
-      } else {
-        document.getElementById('saudacao').textContent = '';
-        document.getElementById('infoData').textContent = `${formatarData(repertorioAtual.data_evento)} (já passou)`;
-      }
-    }
+if (repertorioAtual.data_evento === hoje) {
+document.getElementById('saudacao').textContent = '🎶 Bom culto! Hoje é o dia deste repertório.';
+document.getElementById('infoData').textContent = '';
+} else if (diffDias > 0) {
+document.getElementById('saudacao').textContent = '';
+document.getElementById('infoData').textContent = `${formatarData(repertorioAtual.data_evento)} — faltam ${diffDias} dia(s)`;
+} else {
+document.getElementById('saudacao').textContent = '';
+document.getElementById('infoData').textContent = `${formatarData(repertorioAtual.data_evento)} (já passou)`;
+}
+}
 
-    async function carregar() {
-      const { data: repertorio, error: erroRep } = await sbClient
-        .from('repertorios').select('*').eq('id', repertorioId).single();
+async function carregar() {
+const { data: repertorio, error: erroRep } = await sbClient
+.from('repertorios').select('*').eq('id', repertorioId).single();
 
-      if (erroRep || !repertorio) {
-        document.getElementById('nomeRepertorio').textContent = 'Repertório não encontrado';
-        console.error(erroRep);
-        return;
-      }
+if (erroRep || !repertorio) {
+document.getElementById('nomeRepertorio').textContent = 'Repertório não encontrado';
+console.error(erroRep);
+return;
+}
 
-      repertorioAtual = repertorio;
-      atualizarCabecalhoVisual();
-      await carregarItens();
-    }
+repertorioAtual = repertorio;
+atualizarCabecalhoVisual();
+await carregarItens();
+}
 
-    async function carregarItens() {
-      const { data: linhas, error } = await sbClient
-        .from('repertorio_musicas')
-        .select('id, ordem, musicas (id, titulo, conteudo)')
-        .eq('repertorio_id', repertorioId)
-        .order('ordem');
+async function carregarItens() {
+const { data: linhas, error } = await sbClient
+.from('repertorio_musicas')
+.select('id, ordem, musicas (id, titulo, conteudo)')
+.eq('repertorio_id', repertorioId)
+.order('ordem');
 
-      if (error) {
-        document.getElementById('listaMusicas').textContent = 'Erro: ' + error.message;
-        console.error(error);
-        return;
-      }
+if (error) {
+document.getElementById('listaMusicas').textContent = 'Erro: ' + error.message;
+console.error(error);
+return;
+}
 
-      itens = linhas.map(l => ({ relId: l.id, ordem: l.ordem, musica: l.musicas }));
-      renderizarLista();
-    }
+itens = linhas.map(l => ({ relId: l.id, ordem: l.ordem, musica: l.musicas }));
+renderizarLista();
+}
 
-    function renderizarLista() {
-      const container = document.getElementById('listaMusicas');
-      if (itens.length === 0) {
-        container.innerHTML = '<p id="vazio">Nenhuma música neste repertório ainda.</p>';
-        return;
-      }
+function renderizarLista() {
+const container = document.getElementById('listaMusicas');
+if (itens.length === 0) {
+container.innerHTML = '<p id="vazio">Nenhuma música neste repertório ainda.</p>';
+return;
+}
 
-      container.innerHTML = itens.map((item, indice) => `
-        <div class="linhaMusica">
-          <span class="titulo" onclick="${modoEdicao ? '' : `abrirCifra(${indice})`}" style="${modoEdicao ? '' : 'cursor:pointer'}">${item.musica.titulo}</span>
-          ${modoEdicao ? `
-            <button onclick="mover(${indice}, -1)" ${indice === 0 ? 'disabled' : ''}>▲</button>
-            <button onclick="mover(${indice}, 1)" ${indice === itens.length - 1 ? 'disabled' : ''}>▼</button>
-            <button onclick="remover(${indice})">✕</button>
-          ` : ''}
-        </div>
-      `).join('');
-    }
+container.innerHTML = itens.map((item, indice) => `
+<div class="linhaMusica">
+<span class="titulo" onclick="${modoEdicao ? '' : `abrirCifra(${indice})`}" style="${modoEdicao ? '' : 'cursor:pointer'}">${item.musica.titulo}</span>
+${modoEdicao ? `
+<button onclick="mover(${indice}, -1)" ${indice === 0 ? 'disabled' : ''}>▲</button>
+<button onclick="mover(${indice}, 1)" ${indice === itens.length - 1 ? 'disabled' : ''}>▼</button>
+<button onclick="remover(${indice})">✕</button>
+` : ''}
+</div>
+`).join('');
+}
 
-    document.getElementById('btnEditar').addEventListener('click', async () => {
-      modoEdicao = !modoEdicao;
-      document.getElementById('btnEditar').textContent = modoEdicao ? 'Concluir edição' : 'Editar repertório';
-      document.getElementById('areaAdicionar').style.display = modoEdicao ? 'block' : 'none';
-      document.getElementById('editarCabecalho').style.display = modoEdicao ? 'block' : 'none';
+document.getElementById('btnEditar').addEventListener('click', async () => {
+modoEdicao = !modoEdicao;
+document.getElementById('btnEditar').textContent = modoEdicao ? 'Concluir edição' : 'Editar repertório';
+document.getElementById('areaAdicionar').style.display = modoEdicao ? 'block' : 'none';
+document.getElementById('editarCabecalho').style.display = modoEdicao ? 'block' : 'none';
 
-      if (modoEdicao) {
-        document.getElementById('editNome').value = repertorioAtual.nome;
-        document.getElementById('editData').value = repertorioAtual.data_evento;
+if (modoEdicao) {
+document.getElementById('editNome').value = repertorioAtual.nome;
+document.getElementById('editData').value = repertorioAtual.data_evento;
 
-        if (todasMusicas.length === 0) {
-          const { data } = await sbClient.from('musicas').select('id, titulo').order('titulo');
-          todasMusicas = data || [];
-        }
-      }
+if (todasMusicas.length === 0) {
+const { data } = await sbClient.from('musicas').select('id, titulo').order('titulo');
+todasMusicas = data || [];
+}
+}
 
-      renderizarLista();
-    });
+renderizarLista();
+});
 
-    document.getElementById('btnSalvarCabecalho').addEventListener('click', async () => {
-      const novoNome = document.getElementById('editNome').value.trim();
-      const novaData = document.getElementById('editData').value;
-      if (!novoNome || !novaData) {
-        alert('Preenche nome e data.');
-        return;
-      }
+document.getElementById('btnSalvarCabecalho').addEventListener('click', async () => {
+const novoNome = document.getElementById('editNome').value.trim();
+const novaData = document.getElementById('editData').value;
+if (!novoNome || !novaData) {
+alert('Preenche nome e data.');
+return;
+}
 
-      const { error } = await sbClient
-        .from('repertorios')
-        .update({ nome: novoNome, data_evento: novaData })
-        .eq('id', repertorioId);
+const { error } = await sbClient
+.from('repertorios')
+.update({ nome: novoNome, data_evento: novaData })
+.eq('id', repertorioId);
 
-      if (error) {
-        alert('Erro ao salvar: ' + error.message);
-        return;
-      }
+if (error) {
+alert('Erro ao salvar: ' + error.message);
+return;
+}
 
-      repertorioAtual.nome = novoNome;
-      repertorioAtual.data_evento = novaData;
-      atualizarCabecalhoVisual();
-      alert('Alterações salvas!');
-    });
+repertorioAtual.nome = novoNome;
+repertorioAtual.data_evento = novaData;
+atualizarCabecalhoVisual();
+alert('Alterações salvas!');
+});
 
-    document.getElementById('btnExcluirRepertorio').addEventListener('click', async () => {
-      if (!confirm(`Tem certeza que quer excluir o repertório "${repertorioAtual.nome}"? Essa ação não pode ser desfeita.`)) return;
+document.getElementById('btnExcluirRepertorio').addEventListener('click', async () => {
+if (!confirm(`Tem certeza que quer excluir o repertório "${repertorioAtual.nome}"? Essa ação não pode ser desfeita.`)) return;
 
-      const { error } = await sbClient.from('repertorios').delete().eq('id', repertorioId);
-      if (error) {
-        alert('Erro ao excluir: ' + error.message);
-        return;
-      }
+const { error } = await sbClient.from('repertorios').delete().eq('id', repertorioId);
+if (error) {
+alert('Erro ao excluir: ' + error.message);
+return;
+}
 
-      window.location.href = 'index.html';
-    });
+window.location.href = 'index.html';
+});
 
-    async function mover(indice, direcao) {
-      const outroIndice = indice + direcao;
-      if (outroIndice < 0 || outroIndice >= itens.length) return;
+async function mover(indice, direcao) {
+const outroIndice = indice + direcao;
+if (outroIndice < 0 || outroIndice >= itens.length) return;
 
-      const itemA = itens[indice];
-      const itemB = itens[outroIndice];
+const itemA = itens[indice];
+const itemB = itens[outroIndice];
 
-      const r1 = await sbClient.from('repertorio_musicas').update({ ordem: itemB.ordem }).eq('id', itemA.relId);
-      const r2 = await sbClient.from('repertorio_musicas').update({ ordem: itemA.ordem }).eq('id', itemB.relId);
+const r1 = await sbClient.from('repertorio_musicas').update({ ordem: itemB.ordem }).eq('id', itemA.relId);
+const r2 = await sbClient.from('repertorio_musicas').update({ ordem: itemA.ordem }).eq('id', itemB.relId);
 
-      if (r1.error || r2.error) {
-        alert('Erro ao reordenar: ' + (r1.error?.message || r2.error?.message));
-        return;
-      }
+if (r1.error || r2.error) {
+alert('Erro ao reordenar: ' + (r1.error?.message || r2.error?.message));
+return;
+}
 
-      await carregarItens();
-    }
+await carregarItens();
+}
 
-    async function remover(indice) {
-      const item = itens[indice];
-      if (!confirm(`Remover "${item.musica.titulo}" deste repertório?`)) return;
+async function remover(indice) {
+const item = itens[indice];
+if (!confirm(`Remover "${item.musica.titulo}" deste repertório?`)) return;
 
-      const { error } = await sbClient.from('repertorio_musicas').delete().eq('id', item.relId);
-      if (error) {
-        alert('Erro ao remover: ' + error.message);
-        console.error(error);
-        return;
-      }
+const { error } = await sbClient.from('repertorio_musicas').delete().eq('id', item.relId);
+if (error) {
+alert('Erro ao remover: ' + error.message);
+console.error(error);
+return;
+}
 
-      await carregarItens();
-    }
+await carregarItens();
+}
 
-    async function adicionar(musicaId) {
-      const proximaOrdem = itens.length > 0 ? Math.max(...itens.map(i => i.ordem)) + 1 : 1;
-      const { error } = await sbClient.from('repertorio_musicas').insert({
-        repertorio_id: repertorioId,
-        musica_id: musicaId,
-        ordem: proximaOrdem
-      });
+async function adicionar(musicaId) {
+const proximaOrdem = itens.length > 0 ? Math.max(...itens.map(i => i.ordem)) + 1 : 1;
+const { error } = await sbClient.from('repertorio_musicas').insert({
+repertorio_id: repertorioId,
+musica_id: musicaId,
+ordem: proximaOrdem
+});
 
-      if (error) {
-        alert('Erro ao adicionar: ' + error.message);
-        console.error(error);
-        return;
-      }
+if (error) {
+alert('Erro ao adicionar: ' + error.message);
+console.error(error);
+return;
+}
 
-      await carregarItens();
-      document.getElementById('buscaAdicionar').value = '';
-      document.getElementById('resultadosBusca').innerHTML = '';
-    }
+await carregarItens();
+document.getElementById('buscaAdicionar').value = '';
+document.getElementById('resultadosBusca').innerHTML = '';
+}
 
-    document.getElementById('buscaAdicionar').addEventListener('input', (e) => {
-      const q = e.target.value.trim().toLowerCase();
-      const container = document.getElementById('resultadosBusca');
-      if (!q) { container.innerHTML = ''; return; }
+document.getElementById('buscaAdicionar').addEventListener('input', (e) => {
+const q = e.target.value.trim().toLowerCase();
+const container = document.getElementById('resultadosBusca');
+if (!q) { container.innerHTML = ''; return; }
 
-      const idsJaAdicionados = itens.map(i => i.musica.id);
-      const resultados = todasMusicas
-        .filter(m => m.titulo.toLowerCase().includes(q) && !idsJaAdicionados.includes(m.id))
-        .slice(0, 15);
+const idsJaAdicionados = itens.map(i => i.musica.id);
+const resultados = todasMusicas
+.filter(m => m.titulo.toLowerCase().includes(q) && !idsJaAdicionados.includes(m.id))
+.slice(0, 15);
 
-      container.innerHTML = resultados.map(m => `
-        <div class="resultadoBusca">
-          <span>${m.titulo}</span>
-          <button onclick="adicionar('${m.id}')">+ Adicionar</button>
-        </div>
-      `).join('') || '<p style="color:#888">Nenhum resultado.</p>';
-    });
+container.innerHTML = resultados.map(m => `
+<div class="resultadoBusca">
+<span>${m.titulo}</span>
+<button onclick="adicionar('${m.id}')">+ Adicionar</button>
+</div>
+`).join('') || '<p style="color:#888">Nenhum resultado.</p>';
+});
 
-    function abrirCifra(indice) {
-      indiceAtual = indice;
-      const musica = itens[indice].musica;
-      document.getElementById('tituloCifra').textContent = musica.titulo;
-      document.getElementById('conteudoCifra').textContent = musica.conteudo;
+function abrirCifra(indice) {
+indiceAtual = indice;
+const musica = itens[indice].musica;
+document.getElementById('tituloCifra').textContent = musica.titulo;
+document.getElementById('conteudoCifra').textContent = musica.conteudo;
 
-      const proxima = itens[indice + 1];
-      document.getElementById('nomeProxima').textContent = proxima ? proxima.musica.titulo : '';
-      document.getElementById('setaProxima').style.visibility = proxima ? 'visible' : 'hidden';
+const proxima = itens[indice + 1];
+document.getElementById('nomeProxima').textContent = proxima ? proxima.musica.titulo : '';
+document.getElementById('setaProxima').style.visibility = proxima ? 'visible' : 'hidden';
 
-      document.getElementById('telaLista').style.display = 'none';
-      document.getElementById('telaCifra').style.display = 'block';
-    }
+document.getElementById('telaLista').style.display = 'none';
+document.getElementById('telaCifra').style.display = 'block';
+}
 
-    document.getElementById('setaVoltar').addEventListener('click', (e) => {
-      e.preventDefault();
-      document.getElementById('telaCifra').style.display = 'none';
-      document.getElementById('telaLista').style.display = 'block';
-    });
+document.getElementById('setaVoltar').addEventListener('click', (e) => {
+e.preventDefault();
+document.getElementById('telaCifra').style.display = 'none';
+document.getElementById('telaLista').style.display = 'block';
+});
 
-    document.getElementById('setaProxima').addEventListener('click', (e) => {
-      e.preventDefault();
-      if (indiceAtual + 1 < itens.length) abrirCifra(indiceAtual + 1);
-    });
+document.getElementById('setaProxima').addEventListener('click', (e) => {
+e.preventDefault();
+if (indiceAtual + 1 < itens.length) abrirCifra(indiceAtual + 1);
+});
 
-    async function iniciar() {
-      const sessao = await protegerPagina();
-      if (!sessao) return;
+async function iniciar() {
+const sessao = await protegerPagina();
+if (!sessao) return;
 
-      const perfil = await obterPerfil();
-      ehAdmin = !!(perfil && perfil.papel === 'administrador');
+const perfil = await obterPerfil();
+ehAdmin = !!(perfil && perfil.papel === 'administrador');
 
-      if (ehAdmin) {
-        document.getElementById('btnEditar').style.display = 'inline-block';
-      }
+if (ehAdmin) {
+document.getElementById('btnEditar').style.display = 'inline-block';
+}
 
-      carregar();
-    }
+carregar();
+}
 
-    iniciar();
-  </script>
+iniciar();
+</script>
 </body>
 </html>
