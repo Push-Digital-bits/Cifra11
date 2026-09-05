@@ -408,7 +408,11 @@ document.getElementById('menuLapis').classList.remove('aberto');
 document.getElementById('painelTema').classList.add('aberto');
 });
 
-document.addEventListener('click', (e) => {
+// pointerdown (em vez de click) fecha o menu de forma confiável em qualquer
+// toque fora dele — em alguns navegadores (principalmente iOS/Safari), um toque
+// em elementos sem onclick próprio (como o texto da cifra) não dispara "click"
+// no elemento pai, e o menu podia ficar preso aberto.
+document.addEventListener('pointerdown', (e) => {
 const area = document.getElementById('areaLapis');
 if (area && !area.contains(e.target)) {
 document.getElementById('menuLapis').classList.remove('aberto');
