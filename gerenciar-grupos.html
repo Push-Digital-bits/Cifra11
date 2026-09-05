@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerenciar grupos - G11 Cifras</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseClient.js"></script>
+<script src="auth.js"></script>
+<link rel="stylesheet" href="estilo.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="logo.png">
+<meta name="theme-color" content="#05070F">
+<script src="fundo.js" defer></script>
+<style>
+.topo {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 20px;
+padding-bottom: 14px;
+border-bottom: 1px solid #1E293B;
+}
+a.voltar {
+font-size: 20px;
+color: #E5E7EB;
+background: #16213A;
+border: 1px solid #2A3A5C;
+width: 38px;
+height: 38px;
+border-radius: 10px;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+}
+.topo h1 { margin: 0; font-size: 18px; }
+h2.secao { font-size: 14px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 0 10px; }
+.cartaoGrupo {
+background: #16213A;
+border: 1px solid #2A3A5C;
+border-radius: 12px;
+padding: 14px;
+margin-bottom: 10px;
+}
+.cartaoGrupo .linhaTopo { display: flex; align-items: center; gap: 10px; }
+.cartaoGrupo img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: #0F172A; }
+.cartaoGrupo .info { flex: 1; }
+.cartaoGrupo .nome { font-weight: 700; color: #E5E7EB; font-size: 15px; }
+.cartaoGrupo .detalhe { font-size: 12px; color: #94A3B8; margin-top: 2px; }
+.cartaoGrupo .acoes { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.cartaoGrupo.lixeira { border-color: #7F1D1D; }
+button.pequeno { width: auto; padding: 8px 12px; font-size: 13px; margin: 0; }
+button.secundario { background: #0F172A; color: #E5E7EB; border: 1px solid #2A3A5C; }
+button.perigo { background: #7F1D1D; color: #FEE2E2; border: 1px solid #991B1B; }
+#formNovoGrupo {
+background: #16213A;
+border: 1px solid #2A3A5C;
+border-radius: 12px;
+padding: 16px;
+margin-bottom: 8px;
+}
+#formNovoGrupo label { display: block; font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; margin-bottom: 5px; }
+#formNovoGrupo label:first-of-type { margin-top: 0; }
+#formNovoGrupo input { margin: 0; }
+#formNovoGrupo button { margin-top: 16px; }
+#statusNovoGrupo { margin-top: 10px; font-size: 13px; color: #94A3B8; }
+.aviso { text-align: center; color: #ff8080; margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<div class="topo">
+<a href="index.html" class="voltar">←</a>
+<h1>Gerenciar grupos</h1>
+<div style="width:38px;"></div>
+</div>
+
+<div id="conteudo" style="display:none;">
+
+<div id="formNovoGrupo">
+<h3 style="margin-top:0;">Criar novo grupo</h3>
+<label for="novoNome">Nome do grupo</label>
+<input type="text" id="novoNome" placeholder="Ex: Comunidade Vida Nova">
+<label for="novoCodigo">Código (6 números)</label>
+<input type="text" id="novoCodigo" inputmode="numeric" maxlength="6" placeholder="Ex: 348271">
+<label for="novoLimite">Limite de membros</label>
+<input type="number" id="novoLimite" value="50" min="1">
+<label for="novaImagem">URL da imagem/logo (opcional)</label>
+<input type="url" id="novaImagem" placeholder="https://...">
+<button id="btnCriarGrupo">Criar grupo</button>
+<div id="statusNovoGrupo"></div>
+</div>
+
+<h2 class="secao">Grupos ativos</h2>
+<div id="listaAtivos">Carregando...</div>
+
+<h2 class="secao">Lixeira</h2>
+<div id="listaLixeira"></div>
+
+</div>
+
+<script>
+async function iniciar() {
+  const sessao = await protegerPagina();
+  if (!sessao) return;
+
+  const dono = await ehDonoApp();
+  if (!dono) {
+    document.getElementById('conteudo').innerHTML = '<div class="aviso">Você não tem permissão pra acessar essa página.</div>';
+    document.getElementById('conteudo').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('conteudo').style.display = 'block';
+  carregarGrupos();
+}
+
+async function carregarGrupos() {
+  const { data: grupos, error } = await sbClient
+    .from('grupos')
+    .select('id, nome, codigo, limite_membros, imagem_url, criado_em, excluido_em')
+    .order('criado_em');
+
+  if (error) {
+    document.getElementById('listaAtivos').innerHTML = '<div class="aviso">Erro ao carregar grupos: ' + error.message + '</div>';
+    return;
+  }
+
+  const ativos = grupos.filter((g) => !g.excluido_em);
+  const naLixeira = grupos.filter((g) => !!g.excluido_em);
+
+  const contagens = {};
+  for (const g of ativos) {
+    const { count } = await sbClient.from('perfis').select('id', { count: 'exact', head: true }).eq('grupo_id', g.id).eq('status', 'ativo');
+    contagens[g.id] = count || 0;
+  }
+
+  document.getElementById('listaAtivos').innerHTML = ativos.length === 0
+    ? '<p style="color:#64748B">Nenhum grupo ativo.</p>'
+    : ativos.map((g) => `
+      <div class="cartaoGrupo" data-id="${g.id}">
+        <div class="linhaTopo">
+          <img src="${g.imagem_url || 'logo.png'}" alt="">
+          <div class="info">
+            <div class="nome">${g.nome}</div>
+            <div class="detalhe">Código: ${g.codigo} · ${contagens[g.id] || 0}/${g.limite_membros} membros</div>
+          </div>
+        </div>
+        <div class="acoes">
+          <button class="pequeno secundario" data-acao="entrar" data-id="${g.id}">Entrar no grupo</button>
+          <button class="pequeno perigo" data-acao="excluir" data-id="${g.id}">Mover pra lixeira</button>
+        </div>
+      </div>
+    `).join('');
+
+  document.getElementById('listaLixeira').innerHTML = naLixeira.length === 0
+    ? '<p style="color:#64748B">Lixeira vazia.</p>'
+    : naLixeira.map((g) => {
+        const dias = Math.floor((Date.now() - new Date(g.excluido_em)) / 86400000);
+        return `
+        <div class="cartaoGrupo lixeira" data-id="${g.id}">
+          <div class="linhaTopo">
+            <img src="${g.imagem_url || 'logo.png'}" alt="">
+            <div class="info">
+              <div class="nome">${g.nome}</div>
+              <div class="detalhe">Na lixeira há ${dias} dia(s) · código ${g.codigo}</div>
+            </div>
+          </div>
+          <div class="acoes">
+            <button class="pequeno secundario" data-acao="restaurar" data-id="${g.id}">Restaurar</button>
+            <button class="pequeno perigo" data-acao="apagar-de-vez" data-id="${g.id}">Excluir definitivamente</button>
+          </div>
+        </div>
+      `;
+      }).join('');
+
+  document.querySelectorAll('[data-acao="entrar"]').forEach((btn) => {
+    btn.addEventListener('click', () => trocarGrupoAtivo(btn.getAttribute('data-id')));
+  });
+
+  document.querySelectorAll('[data-acao="excluir"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Mover esse grupo pra lixeira? Os membros perdem o acesso imediatamente. Você pode restaurar dentro de 14 dias.')) return;
+      const { error } = await sbClient.from('grupos').update({ excluido_em: new Date().toISOString() }).eq('id', btn.getAttribute('data-id'));
+      if (error) { alert('Erro: ' + error.message); return; }
+      carregarGrupos();
+    });
+  });
+
+  document.querySelectorAll('[data-acao="restaurar"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const { error } = await sbClient.from('grupos').update({ excluido_em: null }).eq('id', btn.getAttribute('data-id'));
+      if (error) { alert('Erro: ' + error.message); return; }
+      carregarGrupos();
+    });
+  });
+
+  document.querySelectorAll('[data-acao="apagar-de-vez"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('ISSO APAGA O GRUPO PRA SEMPRE — músicas, repertórios e membros. Não tem como desfazer. Confirma?')) return;
+      const { error } = await sbClient.from('grupos').delete().eq('id', btn.getAttribute('data-id'));
+      if (error) { alert('Erro: ' + error.message); return; }
+      carregarGrupos();
+    });
+  });
+}
+
+document.getElementById('btnCriarGrupo').addEventListener('click', async () => {
+  const nome = document.getElementById('novoNome').value.trim();
+  const codigo = document.getElementById('novoCodigo').value.trim();
+  const limite = parseInt(document.getElementById('novoLimite').value, 10) || 50;
+  const imagem = document.getElementById('novaImagem').value.trim();
+  const status = document.getElementById('statusNovoGrupo');
+
+  if (!nome || !/^\d{6}$/.test(codigo)) {
+    status.textContent = 'Preenche o nome e um código de 6 números.';
+    return;
+  }
+
+  status.textContent = 'Criando...';
+  const { error } = await sbClient.from('grupos').insert({
+    nome: nome,
+    codigo: codigo,
+    limite_membros: limite,
+    imagem_url: imagem || null
+  });
+
+  if (error) {
+    status.textContent = 'Erro: ' + error.message;
+    return;
+  }
+
+  status.textContent = 'Grupo criado!';
+  document.getElementById('novoNome').value = '';
+  document.getElementById('novoCodigo').value = '';
+  document.getElementById('novaImagem').value = '';
+  carregarGrupos();
+});
+
+iniciar();
+</script>
+
+</body>
+</html>
