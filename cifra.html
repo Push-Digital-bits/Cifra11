@@ -60,17 +60,56 @@
     color: var(--tema-texto);
     min-height: 40px;
   }
+  #areaLapis {
+    position: relative;
+    display: inline-block;
+    margin: -6px 0 16px;
+  }
   #btnEditarMusica {
     display: none;
-    margin: -6px 0 16px;
-    width: auto;
-    padding: 8px 14px;
-    font-size: 13px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 17px;
     color: var(--tema-texto);
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid var(--tema-borda);
     box-shadow: none;
+    align-items: center;
+    justify-content: center;
   }
+  #menuLapis {
+    display: none;
+    position: absolute;
+    top: 46px;
+    left: 0;
+    z-index: 20;
+    background: #16213A;
+    border: 1px solid #2A3A5C;
+    border-radius: 12px;
+    padding: 6px;
+    min-width: 180px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  #menuLapis.aberto { display: block; }
+  #menuLapis button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin: 0;
+    padding: 10px 12px;
+    font-size: 14px;
+    text-align: left;
+    color: #E5E7EB;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #menuLapis button:hover { background: rgba(255,255,255,0.08); }
+  #menuLapis button:disabled { color: #64748B; cursor: not-allowed; }
   #formEditarMusica {
     display: none;
     margin-bottom: 20px;
@@ -115,7 +154,14 @@
 <a id="voltar" href="index.html">←</a>
 <span id="titulo">Carregando...</span>
 </div>
-<button id="btnEditarMusica">✏️ Editar música</button>
+<div id="areaLapis">
+<button id="btnEditarMusica">✏️</button>
+<div id="menuLapis">
+<button type="button" id="btnModoGhost">👻 Modo Ghost</button>
+<button type="button" id="btnAbrirEditarCifra">✏️ Editar cifra</button>
+<button type="button" id="btnAbrirEditarTema">🎨 Editar tema</button>
+</div>
+</div>
 <div id="formEditarMusica">
 <label for="editTitulo">Título</label>
 <input type="text" id="editTitulo">
@@ -167,12 +213,38 @@ document.getElementById('titulo').textContent = 'Sem internet e sem versão salv
 }
 }
 
-document.getElementById('btnEditarMusica').addEventListener('click', () => {
-if (!musicaAtual) return;
+document.getElementById('btnEditarMusica').addEventListener('click', (e) => {
+e.stopPropagation();
+document.getElementById('menuLapis').classList.toggle('aberto');
+});
+
+document.getElementById('btnModoGhost').addEventListener('click', (e) => {
+e.stopPropagation();
+document.getElementById('menuLapis').classList.remove('aberto');
+alert('Modo Ghost — em breve 👻');
+});
+
+document.getElementById('btnAbrirEditarCifra').addEventListener('click', (e) => {
+e.stopPropagation();
+if (!ehAdmin || !musicaAtual) return;
+document.getElementById('menuLapis').classList.remove('aberto');
 document.getElementById('editTitulo').value = musicaAtual.titulo;
 document.getElementById('editConteudo').value = musicaAtual.conteudo;
 document.getElementById('conteudo').style.display = 'none';
 document.getElementById('formEditarMusica').style.display = 'block';
+});
+
+document.getElementById('btnAbrirEditarTema').addEventListener('click', (e) => {
+e.stopPropagation();
+document.getElementById('menuLapis').classList.remove('aberto');
+document.getElementById('painelTema').classList.add('aberto');
+});
+
+document.addEventListener('click', (e) => {
+const area = document.getElementById('areaLapis');
+if (area && !area.contains(e.target)) {
+document.getElementById('menuLapis').classList.remove('aberto');
+}
 });
 
 document.getElementById('btnCancelarEdicaoMusica').addEventListener('click', () => {
@@ -209,11 +281,10 @@ if (!sessao) return;
 
 const perfil = await obterPerfil();
 ehAdmin = !!(perfil && perfil.papel === 'administrador');
-if (ehAdmin) {
-document.getElementById('btnEditarMusica').style.display = 'inline-block';
-}
+document.getElementById('btnEditarMusica').style.display = 'flex';
+document.getElementById('btnAbrirEditarCifra').disabled = !ehAdmin;
 
-iniciarSeletorTema(document.body);
+iniciarSeletorTema(document.body, { visivelDeInicio: false });
 carregar();
 }
 
